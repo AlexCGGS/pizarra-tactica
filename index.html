@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pizarra Táctica - Playbook</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #0f172a;
+      color: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px;
+      min-height: 100vh;
+    }
+    .app-container {
+      width: 100%;
+      max-width: 940px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .header-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      background: #1e293b;
+      padding: 10px 14px;
+      border-radius: 10px;
+      gap: 10px;
+      border: 1px solid #334155;
+    }
+    .mode-selector {
+      display: flex;
+      background: #0f172a;
+      padding: 3px;
+      border-radius: 8px;
+      border: 1px solid #334155;
+    }
+    .mode-btn {
+      padding: 6px 14px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      color: #94a3b8;
+      background: transparent;
+    }
+    .mode-btn.active-offense {
+      background: #1e3a8a;
+      color: #ffffff;
+      box-shadow: 0 2px 4px rgba(30,58,138,0.5);
+      border: 1px solid #3b82f6;
+    }
+    .mode-btn.active-defense {
+      background: #881337;
+      color: #ffffff;
+      box-shadow: 0 2px 4px rgba(136,19,55,0.5);
+      border: 1px solid #ef4444;
+    }
+    .formation-select-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: #cbd5e1;
+    }
+    .formation-select {
+      background: #0f172a;
+      color: #f8fafc;
+      border: 1px solid #475569;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      outline: none;
+    }
+    .formation-select:hover {
+      border-color: #38bdf8;
+    }
+    .export-btn {
+      background: #059669;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s ease;
+    }
+    .export-btn:hover { background: #047857; }
+
+    .tools-bar {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      align-items: center;
+      background: #1e293b;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid #334155;
+    }
+    .tool-btn {
+      background: #334155;
+      color: #e2e8f0;
+      border: 1px solid #475569;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+    }
+    .tool-btn:hover { background: #475569; }
+    .tool-btn.active {
+      background: #0ea5e9;
+      color: #fff;
+      border-color: #38bdf8;
+    }
+    .tool-btn.active-motion {
+      background: #d97706;
+      color: #fff;
+      border-color: #f59e0b;
+    }
+    .tool-btn.active-eraser {
+      background: #d97706;
+      color: #fff;
+      border-color: #fbbf24;
+      font-weight: 700;
+    }
+    .clear-btn {
+      background: #dc2626;
+      color: white;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-left: auto;
+    }
+    .clear-btn:hover { background: #b91c1c; }
+
+    .canvas-container {
+      position: relative;
+      width: 100%;
+      background: #15803d;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 2px solid #334155;
+      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5);
+      touch-action: none;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    .info-banner {
+      font-size: 12px;
+      color: #94a3b8;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-container">
+  <!-- Barra Superior -->
+  <div class="header-bar">
+    <div class="mode-selector">
+      <button id="btnOffense" class="mode-btn active-offense" onclick="setMode('offense')">🏈 ATAQUE</button>
+      <button id="btnDefense" class="mode-btn" onclick="setMode('defense')">🛡️ DEFENSA</button>
+    </div>
+
+    <div class="formation-select-wrap">
+      <label for="selectFormation">Formación:</label>
+      <select id="selectFormation" class="formation-select" onchange="changeFormation(this.value)">
+      </select>
+    </div>
+
+    <button class="export-btn" onclick="exportToPNG()">📸 Exportar PNG</button>
+  </div>
+
+  <!-- Barra de Herramientas de Dibujo -->
+  <div class="tools-bar">
+    <button id="toolMove" class="tool-btn active" onclick="setTool('move')">🖐️ Mover Fichas</button>
+    <button id="toolPrimary" class="tool-btn" onclick="setTool('primary')">➡️ Ruta / Blitz</button>
+    <button id="toolSecondary" class="tool-btn" onclick="setTool('secondary')">🛑 Bloqueo / Cobertura</button>
+    <button id="toolMotion" class="tool-btn" onclick="setTool('motion')">🏃 Motion (Pre-Snap)</button>
+    <button id="toolZone" class="tool-btn" onclick="setTool('zone')">⭕ Zona</button>
+    <button id="toolEraser" class="tool-btn" onclick="setTool('eraser')">🧹 Borrador Trazo</button>
+    <button class="clear-btn" onclick="clearDrawings()">🗑️ Limpiar Todo</button>
+  </div>
+
+  <!-- Contenedor del Lienzo -->
+  <div class="canvas-container" id="canvasWrapper">
+    <canvas id="fieldCanvas"></canvas>
+  </div>
+
+  <div class="info-banner" id="infoBanner">
+    Arrastra las fichas para ajustar la posición. El suavizado de línea integrado evita la vibración del pulso/dedo.
+  </div>
+</div>
+
+<script>
+  const canvas = document.getElementById('fieldCanvas');
+  const ctx = canvas.getContext('2d');
+  const wrapper = document.getElementById('canvasWrapper');
+
+  let playMode = 'offense'; // 'offense' | 'defense'
+  let activeTool = 'move';  // 'move' | 'primary' | 'secondary' | 'motion' | 'zone' | 'eraser'
+
+  let width = 800;
+  let height = 450;
+
+  // Catálogo de Formaciones Predeterminadas (11 Jugadores)
+  const formationsCatalog = {
+    offense: {
+      'shotgun_spread': {
+        name: 'Shotgun Spread',
+        players: [
+          { id: 'C', label: 'C', x: 0.50, y: 0.55 },
+          { id: 'LG', label: 'LG', x: 0.45, y: 0.55 },
+          { id: 'RG', label: 'RG', x: 0.55, y: 0.55 },
+          { id: 'LT', label: 'LT', x: 0.40, y: 0.55 },
+          { id: 'RT', label: 'RT', x: 0.60, y: 0.55 },
+          { id: 'QB', label: 'QB', x: 0.50, y: 0.65 },
+          { id: 'RB', label: 'RB', x: 0.43, y: 0.65 },
+          { id: 'WR1', label: 'X', x: 0.10, y: 0.57 },
+          { id: 'WR2', label: 'Z', x: 0.90, y: 0.57 },
+          { id: 'WR3', label: 'H', x: 0.25, y: 0.60 },
+          { id: 'TE', label: 'Y', x: 0.75, y: 0.58 }
+        ]
+      },
+      'i_formation': {
+        name: 'I-Formation',
+        players: [
+          { id: 'C', label: 'C', x: 0.50, y: 0.55 },
+          { id: 'LG', label: 'LG', x: 0.45, y: 0.55 },
+          { id: 'RG', label: 'RG', x: 0.55, y: 0.55 },
+          { id: 'LT', label: 'LT', x: 0.40, y: 0.55 },
+          { id: 'RT', label: 'RT', x: 0.60, y: 0.55 },
+          { id: 'TE', label: 'Y', x: 0.66, y: 0.55 },
+          { id: 'QB', label: 'QB', x: 0.50, y: 0.61 },
+          { id: 'FB', label: 'FB', x: 0.50, y: 0.70 },
+          { id: 'RB', label: 'RB', x: 0.50, y: 0.80 },
+          { id: 'WR1', label: 'X', x: 0.12, y: 0.57 },
+          { id: 'WR2', label: 'Z', x: 0.88, y: 0.57 }
+        ]
+      },
+      'singleback_ace': {
+        name: 'Singleback Ace (2 TE)',
+        players: [
+          { id: 'C', label: 'C', x: 0.50, y: 0.55 },
+          { id: 'LG', label: 'LG', x: 0.45, y: 0.55 },
+          { id: 'RG', label: 'RG', x: 0.55, y: 0.55 },
+          { id: 'LT', label: 'LT', x: 0.40, y: 0.55 },
+          { id: 'RT', label: 'RT', x: 0.60, y: 0.55 },
+          { id: 'TE1', label: 'Y1', x: 0.35, y: 0.55 },
+          { id: 'TE2', label: 'Y2', x: 0.65, y: 0.55 },
+          { id: 'QB', label: 'QB', x: 0.50, y: 0.62 },
+          { id: 'RB', label: 'RB', x: 0.50, y: 0.76 },
+          { id: 'WR1', label: 'X', x: 0.12, y: 0.57 },
+          { id: 'WR2', label: 'Z', x: 0.88, y: 0.57 }
+        ]
+      },
+      'pistol': {
+        name: 'Pistol',
+        players: [
+          { id: 'C', label: 'C', x: 0.50, y: 0.55 },
+          { id: 'LG', label: 'LG', x: 0.45, y: 0.55 },
+          { id: 'RG', label: 'RG', x: 0.55, y: 0.55 },
+          { id: 'LT', label: 'LT', x: 0.40, y: 0.55 },
+          { id: 'RT', label: 'RT', x: 0.60, y: 0.55 },
+          { id: 'TE', label: 'Y', x: 0.66, y: 0.55 },
+          { id: 'QB', label: 'QB', x: 0.50, y: 0.63 },
+          { id: 'RB', label: 'RB', x: 0.50, y: 0.73 },
+          { id: 'WR1', label: 'X', x: 0.10, y: 0.57 },
+          { id: 'WR2', label: 'Z', x: 0.90, y: 0.57 },
+          { id: 'WR3', label: 'H', x: 0.25, y: 0.60 }
+        ]
+      },
+      'trips_right': {
+        name: 'Trips Right',
+        players: [
+          { id: 'C', label: 'C', x: 0.50, y: 0.55 },
+          { id: 'LG', label: 'LG', x: 0.45, y: 0.55 },
+          { id: 'RG', label: 'RG', x: 0.55, y: 0.55 },
+          { id: 'LT', label: 'LT', x: 0.40, y: 0.55 },
+          { id: 'RT', label: 'RT', x: 0.60, y: 0.55 },
+          { id: 'QB', label: 'QB', x: 0.50, y: 0.65 },
+          { id: 'RB', label: 'RB', x: 0.43, y: 0.65 },
+          { id: 'WR1', label: 'X', x: 0.10, y: 0.57 },
+          { id: 'WR2', label: 'Z', x: 0.90, y: 0.57 },
+          { id: 'WR3', label: 'H', x: 0.81, y: 0.60 },
+          { id: 'TE', label: 'Y', x: 0.72, y: 0.58 }
+        ]
+      }
+    },
+    defense: {
+      '43_base': {
+        name: '4-3 Base',
+        players: [
+          { id: 'DE1', label: 'DE', x: 0.38, y: 0.48 },
+          { id: 'DT1', label: 'DT', x: 0.46, y: 0.48 },
+          { id: 'DT2', label: 'DT', x: 0.54, y: 0.48 },
+          { id: 'DE2', label: 'DE', x: 0.62, y: 0.48 },
+          { id: 'MLB', label: 'M', x: 0.50, y: 0.38 },
+          { id: 'WLB', label: 'W', x: 0.38, y: 0.38 },
+          { id: 'SLB', label: 'S', x: 0.62, y: 0.38 },
+          { id: 'CB1', label: 'CB', x: 0.12, y: 0.45 },
+          { id: 'CB2', label: 'CB', x: 0.88, y: 0.45 },
+          { id: 'FS', label: 'FS', x: 0.35, y: 0.22 },
+          { id: 'SS', label: 'SS', x: 0.65, y: 0.25 }
+        ]
+      },
+      '34_base': {
+        name: '3-4 Base',
+        players: [
+          { id: 'DE1', label: 'DE', x: 0.40, y: 0.48 },
+          { id: 'NT', label: 'NT', x: 0.50, y: 0.48 },
+          { id: 'DE2', label: 'DE', x: 0.60, y: 0.48 },
+          { id: 'OLB1', label: 'OLB', x: 0.32, y: 0.45 },
+          { id: 'ILB1', label: 'ILB', x: 0.44, y: 0.38 },
+          { id: 'ILB2', label: 'ILB', x: 0.56, y: 0.38 },
+          { id: 'OLB2', label: 'OLB', x: 0.68, y: 0.45 },
+          { id: 'CB1', label: 'CB', x: 0.12, y: 0.45 },
+          { id: 'CB2', label: 'CB', x: 0.88, y: 0.45 },
+          { id: 'FS', label: 'FS', x: 0.35, y: 0.22 },
+          { id: 'SS', label: 'SS', x: 0.65, y: 0.25 }
+        ]
+      },
+      'nickel_425': {
+        name: 'Nickel (4-2-5)',
+        players: [
+          { id: 'DE1', label: 'DE', x: 0.38, y: 0.48 },
+          { id: 'DT1', label: 'DT', x: 0.46, y: 0.48 },
+          { id: 'DT2', label: 'DT', x: 0.54, y: 0.48 },
+          { id: 'DE2', label: 'DE', x: 0.62, y: 0.48 },
+          { id: 'WLB', label: 'W', x: 0.43, y: 0.38 },
+          { id: 'MLB', label: 'M', x: 0.57, y: 0.38 },
+          { id: 'CB1', label: 'CB', x: 0.10, y: 0.45 },
+          { id: 'CB2', label: 'CB', x: 0.90, y: 0.45 },
+          { id: 'NB', label: 'NB', x: 0.28, y: 0.42 },
+          { id: 'FS', label: 'FS', x: 0.35, y: 0.22 },
+          { id: 'SS', label: 'SS', x: 0.65, y: 0.25 }
+        ]
+      },
+      'dime_416': {
+        name: 'Dime (4-1-6)',
+        players: [
+          { id: 'DE1', label: 'DE', x: 0.38, y: 0.48 },
+          { id: 'DT1', label: 'DT', x: 0.46, y: 0.48 },
+          { id: 'DT2', label: 'DT', x: 0.54, y: 0.48 },
+          { id: 'DE2', label: 'DE', x: 0.62, y: 0.48 },
+          { id: 'MLB', label: 'M', x: 0.50, y: 0.38 },
+          { id: 'CB1', label: 'CB', x: 0.10, y: 0.45 },
+          { id: 'CB2', label: 'CB', x: 0.90, y: 0.45 },
+          { id: 'DB1', label: 'DB', x: 0.25, y: 0.40 },
+          { id: 'DB2', label: 'DB', x: 0.75, y: 0.40 },
+          { id: 'FS', label: 'FS', x: 0.35, y: 0.20 },
+          { id: 'SS', label: 'SS', x: 0.65, y: 0.20 }
+        ]
+      },
+      'goalline_heavy': {
+        name: 'Goal Line Heavy',
+        players: [
+          { id: 'DE1', label: 'DE', x: 0.32, y: 0.49 },
+          { id: 'DT1', label: 'DT', x: 0.42, y: 0.49 },
+          { id: 'NT', label: 'NT', x: 0.50, y: 0.49 },
+          { id: 'DT2', label: 'DT', x: 0.58, y: 0.49 },
+          { id: 'DE2', label: 'DE', x: 0.68, y: 0.49 },
+          { id: 'WLB', label: 'W', x: 0.38, y: 0.41 },
+          { id: 'MLB', label: 'M', x: 0.50, y: 0.41 },
+          { id: 'SLB', label: 'S', x: 0.62, y: 0.41 },
+          { id: 'CB1', label: 'CB', x: 0.15, y: 0.45 },
+          { id: 'CB2', label: 'CB', x: 0.85, y: 0.45 },
+          { id: 'SS', label: 'SS', x: 0.50, y: 0.30 }
+        ]
+      }
+    }
+  };
+
+  let players = [];
+  let drawings = [];
+  let currentDrawing = null;
+  let draggedPlayer = null;
+  let activeFormationKey = '';
+
+  function populateFormationSelect() {
+    const select = document.getElementById('selectFormation');
+    select.innerHTML = '';
+    const currentList = formationsCatalog[playMode];
+    const keys = Object.keys(currentList);
+    keys.forEach((key) => {
+      const opt = document.createElement('option');
+      opt.value = key;
+      opt.innerText = currentList[key].name;
+      select.appendChild(opt);
+    });
+    activeFormationKey = keys[0];
+    select.value = activeFormationKey;
+  }
+
+  function changeFormation(key) {
+    activeFormationKey = key;
+    const formDef = formationsCatalog[playMode][key];
+    if (formDef) {
+      players = formDef.players.map(p => ({ ...p }));
+      render();
+    }
+  }
+
+  function setMode(mode) {
+    playMode = mode;
+    document.getElementById('btnOffense').className = mode === 'offense' ? 'mode-btn active-offense' : 'mode-btn';
+    document.getElementById('btnDefense').className = mode === 'defense' ? 'mode-btn active-defense' : 'mode-btn';
+
+    const btnPrimary = document.getElementById('toolPrimary');
+    const btnSecondary = document.getElementById('toolSecondary');
+    const btnMotion = document.getElementById('toolMotion');
+
+    if (mode === 'offense') {
+      btnPrimary.innerHTML = '➡️ Ruta Pase/Carrera';
+      btnSecondary.innerHTML = '🛑 Bloqueo';
+      btnMotion.style.display = 'inline-flex';
+    } else {
+      btnPrimary.innerHTML = '⚡ Blitz / Carga';
+      btnSecondary.innerHTML = '🎯 Cobertura Hombre';
+      btnMotion.style.display = 'none';
+      if (activeTool === 'motion') setTool('primary');
+    }
+
+    populateFormationSelect();
+    changeFormation(document.getElementById('selectFormation').value);
+    drawings = [];
+    render();
+  }
+
+  function setTool(tool) {
+    activeTool = tool;
+    const tools = ['move', 'primary', 'secondary', 'motion', 'zone', 'eraser'];
+    tools.forEach(t => {
+      const btn = document.getElementById('tool' + t.charAt(0).toUpperCase() + t.slice(1));
+      if (btn) {
+        btn.classList.remove('active', 'active-eraser', 'active-motion');
+        if (t === tool) {
+          if (tool === 'eraser') btn.classList.add('active-eraser');
+          else if (tool === 'motion') btn.classList.add('active-motion');
+          else btn.classList.add('active');
+        }
+      }
+    });
+
+    const info = document.getElementById('infoBanner');
+    if (tool === 'eraser') {
+      info.innerText = 'Modo Borrador activo: Haz clic o pasa por encima de cualquier trazo o zona para eliminarlo.';
+    } else if (tool === 'motion') {
+      info.innerText = 'Modo Motion: Trazado en línea punteada para movimientos pre-snap.';
+    } else {
+      info.innerText = 'Arrastra las fichas para ajustar la posición. El suavizado de línea integrado evita la vibración del pulso/dedo.';
+    }
+  }
+
+  function clearDrawings() {
+    drawings = [];
+    render();
+  }
+
+  function resizeCanvas() {
+    const w = wrapper.clientWidth;
+    const h = Math.round(w * 0.5625);
+    canvas.width = w;
+    canvas.height = h;
+    width = w;
+    height = h;
+    render();
+  }
+
+  window.addEventListener('resize', resizeCanvas);
+
+  function drawField() {
+    ctx.fillStyle = '#15803d';
+    ctx.fillRect(0, 0, width, height);
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+    const stripeWidth = width / 10;
+    for (let i = 0; i < 10; i += 2) {
+      ctx.fillRect(i * stripeWidth, 0, stripeWidth, height);
+    }
+
+    ctx.strokeStyle = '#facc15';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(0, height * 0.52);
+    ctx.lineTo(width, height * 0.52);
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.lineWidth = 1.5;
+    const yardSteps = [0.15, 0.30, 0.52, 0.70, 0.85];
+    yardSteps.forEach(yPct => {
+      if (yPct !== 0.52) {
+        ctx.beginPath();
+        ctx.moveTo(0, height * yPct);
+        ctx.lineTo(width, height * yPct);
+        ctx.stroke();
+      }
+    });
+
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.lineWidth = 1;
+    for (let x = 20; x < width; x += 28) {
+      ctx.beginPath();
+      ctx.moveTo(x, height * 0.45);
+      ctx.lineTo(x + 7, height * 0.45);
+      ctx.moveTo(x, height * 0.58);
+      ctx.lineTo(x + 7, height * 0.58);
+      ctx.stroke();
+    }
+  }
+
+  function drawArrowhead(ctx, x, y, angle, color) {
+    const size = 11;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(-size, -size / 1.5);
+    ctx.lineTo(-size, size / 1.5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawBlockHead(ctx, x, y, angle, color) {
+    const size = 11;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3.5;
+    ctx.beginPath();
+    ctx.moveTo(0, -size);
+    ctx.lineTo(0, size);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawPath(d) {
+    if (d.points.length < 2) return;
+
+    ctx.strokeStyle = d.color;
+    ctx.lineWidth = 3.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    if (d.dashed) ctx.setLineDash([8, 6]);
+    else ctx.setLineDash([]);
+
+    ctx.beginPath();
+    const pts = d.points;
+    ctx.moveTo(pts[0].x * width, pts[0].y * height);
+
+    if (pts.length === 2) {
+      ctx.lineTo(pts[1].x * width, pts[1].y * height);
+    } else {
+      for (let i = 1; i < pts.length - 1; i++) {
+        const xc = (pts[i].x + pts[i + 1].x) / 2 * width;
+        const yc = (pts[i].y + pts[i + 1].y) / 2 * height;
+        ctx.quadraticCurveTo(pts[i].x * width, pts[i].y * height, xc, yc);
+      }
+      ctx.lineTo(pts[pts.length - 1].x * width, pts[pts.length - 1].y * height);
+    }
+
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    const last = pts[pts.length - 1];
+    const prev = pts[pts.length - 2];
+    const angle = Math.atan2((last.y - prev.y) * height, (last.x - prev.x) * width);
+
+    if (d.head === 'arrow') {
+      drawArrowhead(ctx, last.x * width, last.y * height, angle, d.color);
+    } else if (d.head === 'block') {
+      drawBlockHead(ctx, last.x * width, last.y * height, angle, d.color);
+    }
+  }
+
+  function drawZone(d) {
+    if (d.points.length < 2) return;
+    const start = d.points[0];
+    const end = d.points[d.points.length - 1];
+    const rx = Math.abs((end.x - start.x) * width);
+    const ry = Math.abs((end.y - start.y) * height);
+    const radius = Math.max(rx, ry, 22);
+
+    ctx.fillStyle = playMode === 'offense' ? 'rgba(59, 130, 246, 0.25)' : 'rgba(239, 68, 68, 0.25)';
+    ctx.strokeStyle = playMode === 'offense' ? '#3b82f6' : '#ef4444';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 4]);
+
+    ctx.beginPath();
+    ctx.arc(start.x * width, start.y * height, radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  function drawPlayer(p) {
+    const px = p.x * width;
+    const py = p.y * height;
+    const radius = 17;
+
+    ctx.beginPath();
+    ctx.arc(px, py, radius, 0, Math.PI * 2);
+
+    if (playMode === 'offense') {
+      ctx.fillStyle = '#172554';
+      ctx.strokeStyle = '#3b82f6';
+    } else {
+      ctx.fillStyle = '#450a0a';
+      ctx.strokeStyle = '#ef4444';
+    }
+
+    ctx.lineWidth = 2.5;
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(p.label, px, py);
+  }
+
+  function render() {
+    ctx.clearRect(0, 0, width, height);
+    drawField();
+
+    drawings.forEach(d => {
+      if (d.type === 'zone') drawZone(d);
+      else drawPath(d);
+    });
+
+    if (currentDrawing) {
+      if (currentDrawing.type === 'zone') drawZone(currentDrawing);
+      else drawPath(currentDrawing);
+    }
+
+    players.forEach(drawPlayer);
+  }
+
+  function pointToSegmentDistance(px, py, x1, y1, x2, y2) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    if (dx === 0 && dy === 0) return Math.hypot(px - x1, py - y1);
+    let u = ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy);
+    u = Math.max(0, Math.min(1, u));
+    return Math.hypot(px - (x1 + u * dx), py - (y1 + u * dy));
+  }
+
+  function eraseAtCoords(coords) {
+    const cx = coords.x * width;
+    const cy = coords.y * height;
+    const threshold = 18;
+
+    let removedAny = false;
+
+    for (let i = drawings.length - 1; i >= 0; i--) {
+      const d = drawings[i];
+
+      if (d.type === 'zone') {
+        const startX = d.points[0].x * width;
+        const startY = d.points[0].y * height;
+        const endX = d.points[d.points.length - 1].x * width;
+        const endY = d.points[d.points.length - 1].y * height;
+        const radius = Math.max(Math.abs(endX - startX), Math.abs(endY - startY), 22);
+        const dist = Math.hypot(cx - startX, cy - startY);
+
+        if (dist <= radius + 10) {
+          drawings.splice(i, 1);
+          removedAny = true;
+          break;
+        }
+      } else {
+        for (let j = 0; j < d.points.length - 1; j++) {
+          const p1 = d.points[j];
+          const p2 = d.points[j + 1];
+          const dist = pointToSegmentDistance(cx, cy, p1.x * width, p1.y * height, p2.x * width, p2.y * height);
+          if (dist <= threshold) {
+            drawings.splice(i, 1);
+            removedAny = true;
+            break;
+          }
+        }
+        if (removedAny) break;
+      }
+    }
+
+    if (removedAny) {
+      render();
+    }
+  }
+
+  function exportToPNG() {
+    render();
+    const link = document.createElement('a');
+    const formName = formationsCatalog[playMode][activeFormationKey]?.name || 'Jugada';
+    const cleanFormName = formName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    link.download = `${playMode}_${cleanFormName}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }
+
+  function getCanvasCoords(e) {
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return {
+      x: (clientX - rect.left) / width,
+      y: (clientY - rect.top) / height
+    };
+  }
+
+  let isPointerDown = false;
+  const MIN_DIST_PX = 10;
+
+  function handleStart(e) {
+    e.preventDefault();
+    isPointerDown = true;
+    const coords = getCanvasCoords(e);
+
+    if (activeTool === 'eraser') {
+      eraseAtCoords(coords);
+      return;
+    }
+
+    if (activeTool === 'move') {
+      for (let p of players) {
+        const dx = (p.x - coords.x) * width;
+        const dy = (p.y - coords.y) * height;
+        if (Math.sqrt(dx * dx + dy * dy) < 22) {
+          draggedPlayer = p;
+          break;
+        }
+      }
+    } else {
+      let head = 'arrow';
+      let dashed = false;
+      let color = playMode === 'offense' ? '#60a5fa' : '#f87171';
+
+      if (playMode === 'offense') {
+        if (activeTool === 'secondary') {
+          head = 'block';
+          color = '#f59e0b';
+        } else if (activeTool === 'motion') {
+          head = 'arrow';
+          dashed = true;
+          color = '#f59e0b';
+        }
+      } else if (playMode === 'defense') {
+        if (activeTool === 'secondary') {
+          head = 'arrow';
+          dashed = true;
+          color = '#fb923c';
+        }
+      }
+
+      currentDrawing = {
+        type: activeTool,
+        color: color,
+        head: head,
+        dashed: dashed,
+        points: [coords]
+      };
+    }
+  }
+
+  function handleMove(e) {
+    if (!isPointerDown) return;
+    e.preventDefault();
+    const coords = getCanvasCoords(e);
+
+    if (activeTool === 'eraser') {
+      eraseAtCoords(coords);
+      return;
+    }
+
+    if (draggedPlayer) {
+      draggedPlayer.x = Math.max(0.03, Math.min(0.97, coords.x));
+      draggedPlayer.y = Math.max(0.03, Math.min(0.97, coords.y));
+      render();
+    } else if (currentDrawing) {
+      const last = currentDrawing.points[currentDrawing.points.length - 1];
+      const distPx = Math.hypot((coords.x - last.x) * width, (coords.y - last.y) * height);
+
+      if (distPx >= MIN_DIST_PX) {
+        const alpha = 0.45;
+        const smoothedX = last.x + alpha * (coords.x - last.x);
+        const smoothedY = last.y + alpha * (coords.y - last.y);
+
+        currentDrawing.points.push({ x: smoothedX, y: smoothedY });
+        render();
+      }
+    }
+  }
+
+  function handleEnd(e) {
+    isPointerDown = false;
+    if (draggedPlayer) {
+      draggedPlayer = null;
+    }
+    if (currentDrawing) {
+      if (currentDrawing.points.length > 1) {
+        drawings.push(currentDrawing);
+      }
+      currentDrawing = null;
+      render();
+    }
+  }
+
+  canvas.addEventListener('mousedown', handleStart);
+  canvas.addEventListener('mousemove', handleMove);
+  canvas.addEventListener('mouseup', handleEnd);
+
+  canvas.addEventListener('touchstart', handleStart, { passive: false });
+  canvas.addEventListener('touchmove', handleMove, { passive: false });
+  canvas.addEventListener('touchend', handleEnd);
+
+  populateFormationSelect();
+  changeFormation(document.getElementById('selectFormation').value);
+  resizeCanvas();
+</script>
+</body>
+</html>
