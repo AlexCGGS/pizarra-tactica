@@ -1,908 +1,1415 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Pizarra Táctica - Fútbol Americano</title>
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    /* Prevención estricta de scroll/refresh al arrastrar o dibujar en móvil */
-    html, body {
-      overscroll-behavior: none;
-      touch-action: none;
-      user-select: none;
-      -webkit-user-select: none;
-      background-color: #0f172a;
-    }
-    
-    .color-swatch {
-      width: 28px;
-      height: 28px;
-      border-radius: 9999px;
-      border: 2px solid transparent;
-      cursor: pointer;
-      transition: transform 0.15s ease, border-color 0.15s ease;
-    }
-    .color-swatch:active {
-      transform: scale(0.9);
-    }
-    .color-swatch.active {
-      border-color: #ffffff;
-      transform: scale(1.15);
-      box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
-    }
-    
-    /* Scrollbar estilizada para barra de herramientas en móvil */
-    .no-scrollbar::-webkit-scrollbar {
-      display: none;
-    }
-    .no-scrollbar {
-      -ms-overflow-style: none;
-      scrollbar-width: none;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pizarra Táctica de Fútbol Americano</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .canvas-container {
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        input[type="range"] {
+            accent-color: #2563eb;
+        }
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 3px;
+        }
+    </style>
 </head>
-<body class="h-screen w-screen flex flex-col text-white font-sans overflow-hidden select-none">
+<body class="bg-slate-950 text-slate-100 font-sans h-screen flex flex-col overflow-hidden">
 
-  <!-- BARRA DE HERRAMIENTAS SUPERIOR -->
-  <header class="bg-slate-900 border-b border-slate-800 p-2 sm:p-3 flex flex-col gap-2 shadow-lg z-20">
-    <div class="flex items-center justify-between gap-2 flex-wrap">
-      
-      <!-- TÍTULO -->
-      <div class="flex items-center gap-2">
-        <span class="text-xl">🏈</span>
-        <h1 class="font-bold text-base sm:text-lg tracking-wide text-slate-100">Pizarra Táctica</h1>
-      </div>
-
-      <!-- SELECTOR DE FORMACIONES -->
-      <div class="flex items-center gap-2 flex-wrap text-xs sm:text-sm">
-        <div class="flex items-center gap-1 bg-slate-800 px-2 py-1 rounded-lg border border-slate-700">
-          <label for="offense-select" class="text-amber-400 font-semibold">Ataque:</label>
-          <select id="offense-select" class="bg-slate-900 text-white rounded px-2 py-1 outline-none font-medium cursor-pointer">
-            <option value="EMPTY">EMPTY</option>
-            <option value="DIAMOND">DIAMOND</option>
-            <option value="SPREAD" selected>SPREAD</option>
-            <option value="TRIPS">TRIPS</option>
-            <option value="BUNCH">BUNCH</option>
-            <option value="GUN_DOUBLES">GUN DOUBLES</option>
-            <option value="TRAY">TRAY</option>
-            <option value="TRIO">TRIO</option>
-            <option value="GUN_SNUGS">GUN SNUGS</option>
-            <option value="GUN_ACE">GUN ACE</option>
-            <option value="I_FORM_STRONG_TIGHT">I-FORM STRONG TIGHT</option>
-            <option value="I_FORM_TIGHT">I-FORM TIGHT</option>
-            <option value="I_FORM">I-FORM</option>
-            <option value="GUN_SPLIT">GUN SPLIT</option>
-            <option value="GUN_PRO">GUN PRO</option>
-            <option value="I_FORM_WING">I-FORM WING</option>
-          </select>
+    <!-- Top Navigation Header -->
+    <header class="bg-slate-900 border-b border-slate-800 px-4 py-2.5 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="bg-emerald-600 p-2 rounded-lg text-white shadow-lg shadow-emerald-900/30">
+                <i data-lucide="shield"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg leading-tight flex items-center gap-2">
+                    Pizarra Táctica de Fútbol Americano
+                    <span class="bg-emerald-900/80 text-emerald-300 text-xs px-2 py-0.5 rounded border border-emerald-700/50 font-normal">v2.5 (Ataque + Defensa + Zonas)</span>
+                </h1>
+                <p class="text-xs text-slate-400">Diseño completo de esquemas ofensivos, frentes defensivos y zonas de cobertura</p>
+            </div>
         </div>
 
-        <div class="flex items-center gap-1 bg-slate-800 px-2 py-1 rounded-lg border border-slate-700">
-          <label for="defense-select" class="text-red-400 font-semibold">Defensa:</label>
-          <select id="defense-select" class="bg-slate-900 text-white rounded px-2 py-1 outline-none font-medium cursor-pointer">
-            <option value="DEF_43">4-3 Base</option>
-            <option value="DEF_34">3-4 Base</option>
-            <option value="DEF_NICKEL">Nickel 4-2-5</option>
-            <option value="DEF_COVER2">Cover 2</option>
-            <option value="DEF_NONE">Sin Defensa</option>
-          </select>
+        <!-- Header Actions -->
+        <div class="flex items-center gap-2">
+            <div class="flex items-center bg-slate-800 rounded-lg p-1 border border-slate-700">
+                <input type="text" id="playTitle" value="Cover 3 Cloud vs Shotgun Trips" class="bg-transparent text-sm px-2 py-1 focus:outline-none w-56 font-medium text-slate-200" placeholder="Nombre de la jugada...">
+            </div>
+            <button id="btnAnimate" class="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3 py-2 rounded-lg transition shadow">
+                <i data-lucide="play" class="w-4 h-4"></i> Simular Jugada
+            </button>
+            <button id="btnExportImage" class="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium px-3 py-2 rounded-lg border border-slate-700 transition">
+                <i data-lucide="download" class="w-4 h-4"></i> Exportar PNG
+            </button>
+            <button id="btnSavePlay" class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-2 rounded-lg transition shadow">
+                <i data-lucide="save" class="w-4 h-4"></i> Guardar
+            </button>
         </div>
-      </div>
+    </header>
 
-      <!-- BOTONES DE ACCIÓN -->
-      <div class="flex items-center gap-2">
-        <button id="btn-clear-draw" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-semibold px-3 py-1.5 rounded-lg border border-slate-700 transition flex items-center gap-1">
-          <span>✏️</span> Limpiar Trazos
-        </button>
-        <button id="btn-reset-board" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-semibold px-3 py-1.5 rounded-lg border border-slate-700 transition flex items-center gap-1">
-          <span>🔄</span> Resetear
-        </button>
-        <button id="btn-download" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-bold px-3 py-1.5 rounded-lg shadow transition flex items-center gap-1">
-          <span>📷</span> Captura
-        </button>
-      </div>
+    <!-- Main Workspace -->
+    <div class="flex flex-1 overflow-hidden">
+        
+        <!-- Left Sidebar: Formations & Teams -->
+        <aside class="w-72 bg-slate-900 border-r border-slate-800 flex flex-col shrink-0 overflow-y-auto">
+            
+            <!-- View Mode Switcher -->
+            <div class="p-3 border-b border-slate-800">
+                <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">Modo de Escenario</label>
+                <div class="grid grid-cols-3 gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
+                    <button id="modeBoth" class="mode-btn active bg-slate-800 text-emerald-400 text-xs py-1.5 font-medium rounded text-center transition">
+                        Scrimmage
+                    </button>
+                    <button id="modeOffense" class="mode-btn text-slate-400 hover:text-white text-xs py-1.5 font-medium rounded text-center transition">
+                        Solo Ataque
+                    </button>
+                    <button id="modeDefense" class="mode-btn text-slate-400 hover:text-white text-xs py-1.5 font-medium rounded text-center transition">
+                        Solo Defensa
+                    </button>
+                </div>
+            </div>
+
+            <!-- Formations Section -->
+            <div class="p-3 border-b border-slate-800 space-y-4">
+                
+                <!-- Offense Formations -->
+                <div id="offenseFormationsGroup">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1">
+                            <i data-lucide="users" class="w-3.5 h-3.5"></i> Formación Ataque
+                        </span>
+                        <span class="text-[10px] bg-blue-950 text-blue-300 px-1.5 py-0.5 rounded border border-blue-800">O</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-1.5">
+                        <button class="preset-offense bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs p-2 rounded text-left border border-slate-700/60 transition" data-preset="shotgun_spread">
+                            Shotgun Spread
+                        </button>
+                        <button class="preset-offense bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs p-2 rounded text-left border border-slate-700/60 transition" data-preset="singleback_ace">
+                            Singleback Ace
+                        </button>
+                        <button class="preset-offense bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs p-2 rounded text-left border border-slate-700/60 transition" data-preset="i_formation">
+                            I-Formation Pro
+                        </button>
+                        <button class="preset-offense bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs p-2 rounded text-left border border-slate-700/60 transition" data-preset="trips_right">
+                            Shotgun Trips
+                        </button>
+                        <button class="preset-offense bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs p-2 rounded text-left border border-slate-700/60 transition" data-preset="pistol">
+                            Pistol Flex
+                        </button>
+                        <button class="preset-offense bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs p-2 rounded text-left border border-slate-700/60 transition" data-preset="empty_5wr">
+                            Empty 5WR
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Defense Formations -->
+                <div id="defenseFormationsGroup">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-red-400 uppercase tracking-wider flex items-center gap-1">
+                            <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i> Formación Defensa
+                        </span>
+                        <span class="text-[10px] bg-red-950 text-red-300 px-1.5 py-0.5 rounded border border-red-800">X</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-1.5">
+                        <button class="preset-defense bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs p-2 rounded text-left border border-slate-700/60 transition" data-preset="def_43_base">
+                            4-3 Base
+                        </button>
+                        <button class="preset-defense bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs p-2 rounded text-left border border-slate-700/60 transition" data-preset="def_34_base">
+                            3-4 Base
+                        </button>
+                        <button class="preset-defense bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs p-2 rounded text-left border border-slate-700/60 transition" data-preset="def_nickel_245">
+                            Nickel 2-4-5
+                        </button>
+                        <button class="preset-defense bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs p-2 rounded text-left border border-slate-700/60 transition" data-preset="def_nickel_335">
+                            Nickel 3-3-5
+                        </button>
+                        <button class="preset-defense bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs p-2 rounded text-left border border-slate-700/60 transition" data-preset="def_dime_416">
+                            Dime (4-1-6)
+                        </button>
+                        <button class="preset-defense bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs p-2 rounded text-left border border-slate-700/60 transition" data-preset="def_cover2_shell">
+                            Cover 2 Shell
+                        </button>
+                        <button class="preset-defense bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs p-2 rounded text-left border border-slate-700/60 transition" data-preset="def_cover3_sky">
+                            Cover 3 Sky
+                        </button>
+                        <button class="preset-defense bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs p-2 rounded text-left border border-slate-700/60 transition" data-preset="def_goalline">
+                            Goal Line 5-3
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Manual Player Adder -->
+            <div class="p-3 border-b border-slate-800">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">Añadir Jugador Individual</span>
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="btnAddOffense" class="bg-blue-900/50 hover:bg-blue-900 text-blue-200 border border-blue-700/60 text-xs py-2 px-3 rounded flex items-center justify-center gap-1.5 transition">
+                        <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> + Ataque (O)
+                    </button>
+                    <button id="btnAddDefense" class="bg-red-900/50 hover:bg-red-900 text-red-200 border border-red-700/60 text-xs py-2 px-3 rounded flex items-center justify-center gap-1.5 transition">
+                        <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> + Defensa (X)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Field Settings -->
+            <div class="p-3 border-b border-slate-800 space-y-3">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Ajustes del Campo</span>
+                <div>
+                    <label class="text-[11px] text-slate-400 block mb-1">Enfoque de Terreno</label>
+                    <select id="fieldViewSelect" class="bg-slate-950 border border-slate-800 text-xs rounded w-full p-2 text-slate-200 focus:outline-none">
+                        <option value="half_field">Medio Campo (Red Zone / Scrimmage)</option>
+                        <option value="full_field">Campo Completo (100 Yards)</option>
+                        <option value="red_zone">Zona Roja (20 Yds a Gol)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-[11px] text-slate-400 block mb-1">Hash Marks (Marcas)</label>
+                    <select id="hashSelect" class="bg-slate-950 border border-slate-800 text-xs rounded w-full p-2 text-slate-200 focus:outline-none">
+                        <option value="nfl">NFL (Estrecho - 18'6")</option>
+                        <option value="college">NCAA / Universitario (40')</option>
+                        <option value="highschool">High School (53'4")</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Saved Plays Mini Library -->
+            <div class="p-3 flex-1 flex flex-col">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">Jugadas Guardadas</span>
+                <div id="savedPlaysList" class="space-y-1.5 overflow-y-auto max-h-48 flex-1 pr-1">
+                    <p class="text-xs text-slate-500 italic">No hay jugadas guardadas en memoria.</p>
+                </div>
+            </div>
+
+        </aside>
+
+        <!-- Central Workspace Canvas & Floating Toolbar -->
+        <main class="flex-1 bg-slate-950 flex flex-col relative overflow-hidden">
+            
+            <!-- Tools Bar (Top Floating Bar) -->
+            <div class="bg-slate-900/90 backdrop-blur border-b border-slate-800 px-4 py-2 flex items-center justify-between gap-4 overflow-x-auto shrink-0 z-10">
+                
+                <!-- Action Modes / Selector -->
+                <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
+                    <button id="toolSelect" class="tool-btn active bg-slate-800 text-white p-2 rounded text-xs flex items-center gap-1.5 transition" title="Seleccionar y Mover Elementos">
+                        <i data-lucide="mouse-pointer" class="w-4 h-4"></i>
+                        <span class="hidden sm:inline">Mover</span>
+                    </button>
+                    <button id="toolEraser" class="tool-btn text-slate-400 hover:text-white p-2 rounded text-xs flex items-center gap-1.5 transition" title="Borrar elemento al hacer clic">
+                        <i data-lucide="eraser" class="w-4 h-4"></i>
+                        <span class="hidden sm:inline">Borrar</span>
+                    </button>
+                </div>
+
+                <div class="h-6 w-px bg-slate-800"></div>
+
+                <!-- Lines & Routes Tools -->
+                <div class="flex items-center gap-1">
+                    <span class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mr-1 hidden md:inline">Trazado:</span>
+                    <button id="toolRoute" class="tool-btn text-slate-400 hover:text-white p-2 rounded text-xs flex items-center gap-1 transition" title="Ruta Continua con Flecha">
+                        <i data-lucide="trending-up" class="w-4 h-4"></i>
+                        <span class="text-xs font-medium">Ruta</span>
+                    </button>
+                    <button id="toolBlitz" class="tool-btn text-slate-400 hover:text-white p-2 rounded text-xs flex items-center gap-1 transition" title="Blitz / Pass Rush (Zig-Zag)">
+                        <i data-lucide="zap" class="w-4 h-4 text-amber-400"></i>
+                        <span class="text-xs font-medium">Blitz</span>
+                    </button>
+                    <button id="toolCoverageLine" class="tool-btn text-slate-400 hover:text-white p-2 rounded text-xs flex items-center gap-1 transition" title="Asignación Cobertura de Zona (Punteada)">
+                        <i data-lucide="git-commit" class="w-4 h-4 text-cyan-400"></i>
+                        <span class="text-xs font-medium">Asignación</span>
+                    </button>
+                    <button id="toolBlock" class="tool-btn text-slate-400 hover:text-white p-2 rounded text-xs flex items-center gap-1 transition" title="Bloqueo en T">
+                        <i data-lucide="minus" class="w-4 h-4 text-slate-300"></i>
+                        <span class="text-xs font-medium">Bloqueo</span>
+                    </button>
+                    <button id="toolMotion" class="tool-btn text-slate-400 hover:text-white p-2 rounded text-xs flex items-center gap-1 transition" title="Moción Pre-snap (Discontinua)">
+                        <i data-lucide="move-right" class="w-4 h-4 text-purple-400"></i>
+                        <span class="text-xs font-medium">Motion</span>
+                    </button>
+                </div>
+
+                <div class="h-6 w-px bg-slate-800"></div>
+
+                <!-- ZONE PAINTER SECTION (PINTAR ZONAS DE COBERTURA) -->
+                <div class="flex items-center gap-1 bg-amber-950/30 p-1 rounded-lg border border-amber-900/40">
+                    <span class="text-[10px] text-amber-400 uppercase font-bold tracking-wider mr-1 px-1 flex items-center gap-1">
+                        <i data-lucide="layers" class="w-3.5 h-3.5"></i> Zonas:
+                    </span>
+                    
+                    <!-- Quick Zone Presets Dropdown/Buttons -->
+                    <button id="toolZoneFlat" class="tool-btn text-amber-200 hover:bg-amber-900/50 p-1.5 rounded text-xs flex items-center gap-1 transition" title="Pintar Zona Flat (Pase Corto Exteriort)">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+                        <span class="text-xs">Flat</span>
+                    </button>
+                    <button id="toolZoneHook" class="tool-btn text-blue-200 hover:bg-blue-900/50 p-1.5 rounded text-xs flex items-center gap-1 transition" title="Pintar Zona Hook / Curl (Pase Medio)">
+                        <span class="w-2.5 h-2.5 rounded-full bg-blue-400"></span>
+                        <span class="text-xs">Hook/Curl</span>
+                    </button>
+                    <button id="toolZoneDeepThird" class="tool-btn text-emerald-200 hover:bg-emerald-900/50 p-1.5 rounded text-xs flex items-center gap-1 transition" title="Pintar Zona Deep 1/3 (Tercio Profundo)">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                        <span class="text-xs">Deep 1/3</span>
+                    </button>
+                    <button id="toolZoneDeepHalf" class="tool-btn text-purple-200 hover:bg-purple-900/50 p-1.5 rounded text-xs flex items-center gap-1 transition" title="Pintar Zona Deep 1/2 (Mitad Profunda)">
+                        <span class="w-2.5 h-2.5 rounded-full bg-purple-400"></span>
+                        <span class="text-xs">Deep 1/2</span>
+                    </button>
+                    
+                    <!-- Custom Drawing Zone -->
+                    <button id="toolZoneCustomRect" class="tool-btn text-slate-300 hover:text-white p-1.5 rounded text-xs flex items-center gap-1 transition" title="Dibujar Zona Personalizada (Rectángulo u Oval)">
+                        <i data-lucide="square" class="w-3.5 h-3.5"></i>
+                        <span class="text-xs">Libre</span>
+                    </button>
+                </div>
+
+                <div class="h-6 w-px bg-slate-800"></div>
+
+                <!-- Custom Drawing Style Controls -->
+                <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-1">
+                        <label class="text-[10px] text-slate-400">Color:</label>
+                        <input type="color" id="drawColor" value="#f59e0b" class="w-6 h-6 rounded cursor-pointer bg-transparent border-0">
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <label class="text-[10px] text-slate-400">Opacidad Zona:</label>
+                        <input type="range" id="zoneOpacity" min="0.1" max="0.7" step="0.05" value="0.3" class="w-16">
+                    </div>
+                </div>
+
+                <!-- Canvas Control Actions -->
+                <div class="flex items-center gap-1 ml-auto">
+                    <button id="btnUndo" class="p-2 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition" title="Deshacer (Ctrl+Z)">
+                        <i data-lucide="undo" class="w-4 h-4"></i>
+                    </button>
+                    <button id="btnClearLines" class="p-2 text-amber-400 hover:text-amber-300 rounded hover:bg-amber-950/40 transition" title="Limpiar solo líneas y zonas">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                    <button id="btnResetAll" class="p-2 text-red-400 hover:text-red-300 rounded hover:bg-red-950/40 transition" title="Restablecer Pizarra Completa">
+                        <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- Canvas Container -->
+            <div class="flex-1 relative bg-slate-950 flex items-center justify-center p-2 overflow-hidden canvas-container">
+                <canvas id="fieldCanvas" class="shadow-2xl rounded-lg border border-slate-800 bg-emerald-900 cursor-crosshair"></canvas>
+
+                <!-- Floating Legend & Info -->
+                <div class="absolute bottom-4 left-4 bg-slate-900/85 backdrop-blur border border-slate-800 rounded-lg p-2.5 text-xs text-slate-300 pointer-events-none flex items-center gap-4 shadow-lg">
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-3 h-3 rounded-full bg-blue-600 border border-white flex items-center justify-center text-[8px] font-bold text-white">O</span>
+                        <span>Ataque</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-3 h-3 bg-red-600 text-white flex items-center justify-center text-[9px] font-bold rounded-sm">X</span>
+                        <span>Defensa</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-3 h-3 bg-amber-500/40 border border-amber-400 rounded-sm"></span>
+                        <span>Zonas Cobertura</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 text-slate-400">
+                        <i data-lucide="info" class="w-3.5 h-3.5"></i>
+                        <span>Arrastra jugadores | Haz clic en zonas para editarlas</span>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Right Inspector & Player Editor Sidebar -->
+        <aside id="inspectorPanel" class="w-64 bg-slate-900 border-l border-slate-800 p-4 flex flex-col shrink-0 overflow-y-auto">
+            <h2 class="font-bold text-sm text-slate-200 border-b border-slate-800 pb-2 mb-3 flex items-center justify-between">
+                <span>Inspector de Elemento</span>
+                <i data-lucide="sliders" class="w-4 h-4 text-slate-400"></i>
+            </h2>
+
+            <div id="inspectorEmpty" class="text-xs text-slate-500 italic py-8 text-center">
+                Haz clic sobre un jugador, línea o zona en el campo para modificar sus propiedades.
+            </div>
+
+            <div id="inspectorContent" class="hidden space-y-4 text-xs">
+                
+                <!-- Player Details Edit -->
+                <div id="playerEditGroup" class="space-y-3">
+                    <span class="font-bold text-slate-300 uppercase tracking-wider block border-b border-slate-800 pb-1">Configuración de Jugador</span>
+                    <div>
+                        <label class="text-slate-400 block mb-1">Posición / Etiqueta</label>
+                        <input type="text" id="editPlayerLabel" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white font-mono uppercase focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="text-slate-400 block mb-1">Símbolo</label>
+                        <select id="editPlayerSymbol" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white">
+                            <option value="O">O (Ofensivo)</option>
+                            <option value="X">X (Defensivo)</option>
+                            <option value="square">Cuadrado</option>
+                            <option value="triangle">Triángulo</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-slate-400 block mb-1">Color del Marcador</label>
+                        <input type="color" id="editPlayerColor" class="w-full h-8 bg-transparent rounded cursor-pointer">
+                    </div>
+                    <button id="btnDeletePlayer" class="w-full bg-red-950/80 hover:bg-red-900 text-red-200 border border-red-800 py-1.5 rounded flex items-center justify-center gap-1 mt-2 transition">
+                        <i data-lucide="trash" class="w-3.5 h-3.5"></i> Eliminar Jugador
+                    </button>
+                </div>
+
+                <!-- Zone Details Edit -->
+                <div id="zoneEditGroup" class="space-y-3 hidden">
+                    <span class="font-bold text-amber-400 uppercase tracking-wider block border-b border-slate-800 pb-1">Configuración de Zona</span>
+                    <div>
+                        <label class="text-slate-400 block mb-1">Nombre de Cobertura</label>
+                        <input type="text" id="editZoneLabel" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="text-slate-400 block mb-1">Color de Relleno</label>
+                        <input type="color" id="editZoneColor" class="w-full h-8 bg-transparent rounded cursor-pointer">
+                    </div>
+                    <div>
+                        <label class="text-slate-400 block mb-1">Opacidad de Zona</label>
+                        <input type="range" id="editZoneOpacity" min="0.05" max="0.8" step="0.05" class="w-full">
+                    </div>
+                    <button id="btnDeleteZone" class="w-full bg-red-950/80 hover:bg-red-900 text-red-200 border border-red-800 py-1.5 rounded flex items-center justify-center gap-1 mt-2 transition">
+                        <i data-lucide="trash" class="w-3.5 h-3.5"></i> Eliminar Zona
+                    </button>
+                </div>
+
+            </div>
+        </aside>
+
     </div>
 
-    <!-- SEGUNDA FILA: CONTROLES DE DIBUJO Y SELECCIÓN DE COLORES -->
-    <div class="flex items-center justify-between gap-3 overflow-x-auto no-scrollbar pt-1 border-t border-slate-800 text-xs sm:text-sm">
-      
-      <!-- MODOS: MOVER / DIBUJAR / BORRADOR -->
-      <div class="flex items-center gap-1 bg-slate-800 p-1 rounded-lg border border-slate-700 shrink-0">
-        <button id="mode-move" class="mode-btn bg-blue-600 text-white font-bold px-3 py-1 rounded-md transition flex items-center gap-1">
-          <span>✋</span> Mover
-        </button>
-        <button id="mode-draw" class="mode-btn text-slate-300 font-medium px-3 py-1 rounded-md hover:text-white transition flex items-center gap-1">
-          <span>✏️</span> Dibujar
-        </button>
-        <button id="mode-erase" class="mode-btn text-slate-300 font-medium px-3 py-1 rounded-md hover:text-white transition flex items-center gap-1">
-          <span>🧹</span> Borrar
-        </button>
-      </div>
+    <!-- Application Engine Script -->
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
 
-      <!-- TIPO DE LÍNEA -->
-      <div class="flex items-center gap-1 bg-slate-800 p-1 rounded-lg border border-slate-700 shrink-0">
-        <button id="style-arrow" class="style-btn bg-slate-700 text-white px-2.5 py-1 rounded transition font-bold" title="Línea con flecha">
-          ➔ Flecha
-        </button>
-        <button id="style-solid" class="style-btn text-slate-300 hover:text-white px-2.5 py-1 rounded transition" title="Línea continua">
-          ― Continua
-        </button>
-        <button id="style-dashed" class="style-btn text-slate-300 hover:text-white px-2.5 py-1 rounded transition" title="Línea discontinua">
-          - - Discontinua
-        </button>
-      </div>
+        // Canvas & Setup
+        const canvas = document.getElementById('fieldCanvas');
+        const ctx = canvas.getContext('2d');
 
-      <!-- PALETA DE COLORES DE TRAZO -->
-      <div class="flex items-center gap-2 shrink-0 bg-slate-800 px-3 py-1 rounded-lg border border-slate-700">
-        <span class="text-slate-400 font-medium text-xs">Color:</span>
-        <div class="flex items-center gap-1.5" id="color-palette">
-          <button class="color-swatch active" style="background-color: #facc15;" data-color="#facc15" title="Amarillo"></button>
-          <button class="color-swatch" style="background-color: #ef4444;" data-color="#ef4444" title="Rojo"></button>
-          <button class="color-swatch" style="background-color: #ffffff;" data-color="#ffffff" title="Blanco"></button>
-          <button class="color-swatch" style="background-color: #38bdf8;" data-color="#38bdf8" title="Azul claro"></button>
-          <button class="color-swatch" style="background-color: #4ade80;" data-color="#4ade80" title="Verde"></button>
-          <button class="color-swatch" style="background-color: #fb923c;" data-color="#fb923c" title="Naranja"></button>
-          <button class="color-swatch" style="background-color: #111827;" data-color="#111827" title="Negro"></button>
-        </div>
-        <!-- Selector de color personalizado -->
-        <input type="color" id="custom-color-picker" value="#facc15" class="w-6 h-6 rounded cursor-pointer border-0 bg-transparent p-0" title="Color personalizado">
-      </div>
-
-      <!-- GROSOR DE TRAZO -->
-      <div class="flex items-center gap-2 shrink-0 bg-slate-800 px-3 py-1 rounded-lg border border-slate-700">
-        <span class="text-slate-400 font-medium text-xs">Grosor:</span>
-        <select id="line-width-select" class="bg-slate-900 text-white rounded px-2 py-0.5 outline-none font-medium">
-          <option value="3">Fino</option>
-          <option value="6" selected>Medio</option>
-          <option value="10">Grueso</option>
-        </select>
-      </div>
-
-    </div>
-  </header>
-
-  <!-- ÁREA DE LA PIZARRA (CANVAS) -->
-  <main id="board-container" class="flex-1 w-full h-full relative overflow-hidden bg-slate-950 flex items-center justify-center p-1 sm:p-2">
-    <canvas id="tactics-board" class="w-full h-full rounded-xl shadow-2xl touch-none border border-slate-800"></canvas>
-  </main>
-
-  <!-- LÓGICA JAVASCRIPT -->
-  <script>
-    // --- DEFINICIÓN DE FORMACIONES DE ATAQUE (16 EXACTAS DE LA IMAGEN) ---
-    const OFFENSIVE_FORMATIONS = {
-      EMPTY: {
-        name: "EMPTY",
-        players: [
-          { id: "o1", label: "LT", x: 40, y: 32, type: "OL" },
-          { id: "o2", label: "LG", x: 45, y: 32, type: "OL" },
-          { id: "o3", label: "C",  x: 50, y: 32, type: "CENTER" },
-          { id: "o4", label: "RG", x: 55, y: 32, type: "OL" },
-          { id: "o5", label: "RT", x: 60, y: 32, type: "OL" },
-          { id: "o6", label: "QB", x: 50, y: 40, type: "QB" },
-          { id: "o7", label: "X",  x: 8,  y: 32, type: "WR" },
-          { id: "o8", label: "D",  x: 22, y: 32, type: "WR" },
-          { id: "o9", label: "S",  x: 78, y: 32, type: "WR" },
-          { id: "o10",label: "Y",  x: 86, y: 32, type: "TE" },
-          { id: "o11",label: "Z",  x: 94, y: 32, type: "WR" }
-        ]
-      },
-      DIAMOND: {
-        name: "DIAMOND",
-        players: [
-          { id: "o1", label: "LT", x: 40, y: 32, type: "OL" },
-          { id: "o2", label: "LG", x: 45, y: 32, type: "OL" },
-          { id: "o3", label: "C",  x: 50, y: 32, type: "CENTER" },
-          { id: "o4", label: "RG", x: 55, y: 32, type: "OL" },
-          { id: "o5", label: "RT", x: 60, y: 32, type: "OL" },
-          { id: "o6", label: "QB", x: 50, y: 40, type: "QB" },
-          { id: "o7", label: "X",  x: 8,  y: 32, type: "WR" },
-          { id: "o8", label: "S",  x: 76, y: 34, type: "WR" },
-          { id: "o9", label: "Y",  x: 84, y: 32, type: "TE" },
-          { id: "o10",label: "D",  x: 76, y: 42, type: "WR" },
-          { id: "o11",label: "Z",  x: 93, y: 32, type: "WR" }
-        ]
-      },
-      SPREAD: {
-        name: "SPREAD",
-        players: [
-          { id: "o1", label: "LT", x: 40, y: 32, type: "OL" },
-          { id: "o2", label: "LG", x: 45, y: 32, type: "OL" },
-          { id: "o3", label: "C",  x: 50, y: 32, type: "CENTER" },
-          { id: "o4", label: "RG", x: 55, y: 32, type: "OL" },
-          { id: "o5", label: "RT", x: 60, y: 32, type: "OL" },
-          { id: "o6", label: "QB", x: 50, y: 40, type: "QB" },
-          { id: "o7", label: "2",  x: 43, y: 40, type: "RB" },
-          { id: "o8", label: "X",  x: 8,  y: 32, type: "WR" },
-          { id: "o9", label: "D",  x: 22, y: 32, type: "WR" },
-          { id: "o10",label: "Y",  x: 78, y: 32, type: "TE" },
-          { id: "o11",label: "Z",  x: 92, y: 32, type: "WR" }
-        ]
-      },
-      TRIPS: {
-        name: "TRIPS",
-        players: [
-          { id: "o1", label: "LT", x: 40, y: 32, type: "OL" },
-          { id: "o2", label: "LG", x: 45, y: 32, type: "OL" },
-          { id: "o3", label: "C",  x: 50, y: 32, type: "CENTER" },
-          { id: "o4", label: "RG", x: 55, y: 32, type: "OL" },
-          { id: "o5", label: "RT", x: 60, y: 32, type: "OL" },
-          { id: "o6", label: "QB", x: 50, y: 40, type: "QB" },
-          { id: "o7", label: "2",  x: 43, y: 40, type: "RB" },
-          { id: "o8", label: "X",  x: 8,  y: 32, type: "WR" },
-          { id: "o9", label: "S",  x: 72, y: 32, type: "WR" },
-          { id: "o10",label: "Y",  x: 82, y: 32, type: "TE" },
-          { id: "o11",label: "Z",  x: 92, y: 32, type: "WR" }
-        ]
-      },
-      BUNCH: {
-        name: "BUNCH",
-        players: [
-          { id: "o1", label: "LT", x: 40, y: 32, type: "OL" },
-          { id: "o2", label: "LG", x: 45, y: 32, type: "OL" },
-          { id: "o3", label: "C",  x: 50, y: 32, type: "CENTER" },
-          { id: "o4", label: "RG", x: 55, y: 32, type: "OL" },
-          { id: "o5", label: "RT", x: 60, y: 32, type: "OL" },
-          { id: "o6", label: "QB", x: 50, y: 40, type: "QB" },
-          { id: "o7", label: "2",  x: 43, y: 40, type: "RB" },
-          { id: "o8", label: "X",  x: 8,  y: 32, type: "WR" },
-          { id: "o9", label: "S",  x: 76, y: 35, type: "WR" },
-          { id: "o10",label: "Y",  x: 80, y: 32, type: "TE" },
-          { id: "o11",label: "Z",  x: 84, y: 36, type: "WR" }
-        ]
-      },
-      GUN_DOUBLES: {
-        name: "GUN DOUBLES",
-        players: [
-          { id: "o1", label: "LT", x: 40, y: 32, type: "OL" },
-          { id: "o2", label: "LG", x: 45, y: 32, type: "OL" },
-          { id: "o3", label: "C",  x: 50, y: 32, type: "CENTER" },
-          { id: "o4", label: "RG", x: 55, y: 32, type: "OL" },
-          { id: "o5", label: "RT", x: 60, y: 32, type: "OL" },
-          { id: "o6", label: "QB", x: 50, y: 40, type: "QB" },
-          { id: "o7", label: "2",  x: 43, y: 40, type: "RB" },
-          { id: "o8", label: "X",  x: 8,  y: 32, type: "WR" },
-          { id: "o9", label: "D",  x: 22, y: 32, type: "WR" },
-          { id: "o10",label: "Y",  x: 65, y: 32, type: "TE" },
-          { id: "o11",label: "Z",  x: 92, y: 32, type: "WR" }
-        ]
-      },
-      TRAY: {
-        name: "TRAY",
-        players: [
-          { id: "o1", label: "LT", x: 40, y: 32, type: "OL" },
-          { id: "o2", label: "LG", x: 45, y: 32, type: "OL" },
-          { id: "o3", label: "C",  x: 50, y: 32, type: "CENTER" },
-          { id: "o4", label: "RG", x: 55, y: 32, type: "OL" },
-          { id: "o5", label: "RT", x: 60, y: 32, type: "OL" },
-          { id: "o6", label: "QB", x: 50, y: 40, type: "QB" },
-          { id: "o7", label: "2",  x: 43, y: 40, type: "RB" },
-          { id: "o8", label: "X",  x: 8,  y: 32, type: "WR" },
-          { id: "o9", label: "Y",  x: 65, y: 32, type: "TE" },
-          { id: "o10",label: "S",  x: 78, y: 32, type: "WR" },
-          { id: "o11",label: "Z",  x: 92, y: 32, type: "WR" }
-        ]
-      },
-      TRIO: {
-        name: "TRIO",
-        players: [
-          { id: "o1", label: "LT", x: 40, y: 32, type: "OL" },
-          { id: "o2", label: "LG", x: 45, y: 32, type: "OL" },
-          { id: "o3", label: "C",  x: 50, y: 32, type: "CENTER" },
-          { id: "o4", label: "RG", x: 55, y: 32, type: "OL" },
-          { id: "o5", label: "RT", x: 60, y: 32, type: "OL" },
-          { id: "o6", label: "QB", x: 50, y: 40, type: "QB" },
-          { id: "o7", label: "2",  x: 43, y: 40, type: "RB" },
-          { id: "o8", label: "Y",  x: 22, y: 32, type: "TE" },
-          { id: "o9", label: "X",  x: 8,  y: 32, type: "WR" },
-          { id: "o10",label: "S",  x: 78, y: 32, type: "WR" },
-          { id: "o11",label: "Z",  x: 92, y: 32, type: "WR" }
-        ]
-      },
-      GUN_SNUGS: {
-        name: "GUN SNUGS",
-        players: [
-          { id: "o1", label: "LT", x: 40, y: 32, type: "OL" },
-          { id: "o2", label: "LG", x: 45, y: 32, type: "OL" },
-          { id: "o3", label: "C",  x: 50, y: 32, type: "CENTER" },
-          { id: "o4", label: "RG", x: 55, y: 32, type: "OL" },
-          { id: "o5", label: "RT", x: 60, y: 32, type: "OL" },
-          { id: "o6", label: "QB", x: 50, y: 40, type: "QB" },
-          { id: "o7", label: "2",  x: 57, y: 40, type: "RB" },
-          { id: "o8", label: "X",  x: 32, y: 33, type: "WR" },
-          { id: "o9", label: "D",  x: 36, y: 36, type: "WR" },
-          { id: "o10",label: "Y",  x: 64, y: 36, type: "TE" },
-          { id: "o11",label: "Z",  x: 68, y: 33, type: "WR" }
-        ]
-      },
-      GUN_ACE: {
-        name: "GUN ACE",
-        players: [
-          { id: "o1", label: "W",  x: 35, y: 32, type: "TE" },
-          { id: "o2", label: "LT", x: 40, y: 32, type: "OL" },
-          { id: "o3", label: "LG", x: 45, y: 32, type: "OL" },
-          { id: "o4", label: "C",  x: 50, y: 32, type: "CENTER" },
-          { id: "o5", label: "RG", x: 55, y: 32, type: "OL" },
-          { id: "o6", label: "RT", x: 60, y: 32, type: "OL" },
-          { id: "o7", label: "Y",  x: 65, y: 32, type: "TE" },
-          { id: "o8", label: "QB", x: 50, y: 39, type: "QB" },
-          { id: "o9", label: "2",  x: 50, y: 46, type: "RB" },
-          { id: "o10",label: "X",  x: 8,  y: 32, type: "WR" },
-          { id: "o11",label: "Z",  x: 92, y: 32, type: "WR" }
-        ]
-      },
-      I_FORM_STRONG_TIGHT: {
-        name: "I-FORM STRONG TIGHT",
-        players: [
-          { id: "o1", label: "W",  x: 35, y: 32, type: "TE" },
-          { id: "o2", label: "LT", x: 40, y: 32, type: "OL" },
-          { id: "o3", label: "LG", x: 45, y: 32, type: "OL" },
-          { id: "o4", label: "C",  x: 50, y: 32, type: "CENTER" },
-          { id: "o5", label: "RG", x: 55, y: 32, type: "OL" },
-          { id: "o6", label: "RT", x: 60, y: 32, type: "OL" },
-          { id: "o7", label: "Y",  x: 65, y: 32, type: "TE" },
-          { id: "o8", label: "QB", x: 50, y: 36, type: "QB" },
-          { id: "o9", label: "2",  x: 55, y: 42, type: "FB" },
-          { id: "o10",label: "4",  x: 50, y: 47, type: "RB" },
-          { id: "o11",label: "X",  x: 8,  y: 32, type: "WR" },
-          { id: "o12",label: "Z",  x: 92, y: 32, type: "WR" }
-        ]
-      },
-      I_FORM_TIGHT: {
-        name: "I-FORM TIGHT",
-        players: [
-          { id: "o1", label: "W",  x: 35, y: 32, type: "TE" },
-          { id: "o2", label: "LT", x: 40, y: 32, type: "OL" },
-          { id: "o3", label: "LG", x: 45, y: 32, type: "OL" },
-          { id: "o4", label: "C",  x: 50, y: 32, type: "CENTER" },
-          { id: "o5", label: "RG", x: 55, y: 32, type: "OL" },
-          { id: "o6", label: "RT", x: 60, y: 32, type: "OL" },
-          { id: "o7", label: "Y",  x: 65, y: 32, type: "TE" },
-          { id: "o8", label: "QB", x: 50, y: 36, type: "QB" },
-          { id: "o9", label: "2",  x: 50, y: 42, type: "FB" },
-          { id: "o10",label: "3",  x: 50, y: 48, type: "RB" },
-          { id: "o11",label: "X",  x: 8,  y: 32, type: "WR" },
-          { id: "o12",label: "Z",  x: 92, y: 32, type: "WR" }
-        ]
-      },
-      I_FORM: {
-        name: "I-FORM",
-        players: [
-          { id: "o1", label: "LT", x: 40, y: 32, type: "OL" },
-          { id: "o2", label: "LG", x: 45, y: 32, type: "OL" },
-          { id: "o3", label: "C",  x: 50, y: 32, type: "CENTER" },
-          { id: "o4", label: "RG", x: 55, y: 32, type: "OL" },
-          { id: "o5", label: "RT", x: 60, y: 32, type: "OL" },
-          { id: "o6", label: "Y",  x: 65, y: 32, type: "TE" },
-          { id: "o7", label: "QB", x: 50, y: 36, type: "QB" },
-          { id: "o8", label: "2",  x: 50, y: 42, type: "FB" },
-          { id: "o9", label: "3",  x: 50, y: 48, type: "RB" },
-          { id: "o10",label: "X",  x: 8,  y: 32, type: "WR" },
-          { id: "o11",label: "Z",  x: 92, y: 32, type: "WR" }
-        ]
-      },
-      GUN_SPLIT: {
-        name: "GUN SPLIT",
-        players: [
-          { id: "o1", label: "LT", x: 40, y: 32, type: "OL" },
-          { id: "o2", label: "LG", x: 45, y: 32, type: "OL" },
-          { id: "o3", label: "C",  x: 50, y: 32, type: "CENTER" },
-          { id: "o4", label: "RG", x: 55, y: 32, type: "OL" },
-          { id: "o5", label: "RT", x: 60, y: 32, type: "OL" },
-          { id: "o6", label: "QB", x: 50, y: 40, type: "QB" },
-          { id: "o7", label: "H",  x: 43, y: 40, type: "RB" },
-          { id: "o8", label: "F",  x: 57, y: 40, type: "RB" },
-          { id: "o9", label: "X",  x: 8,  y: 32, type: "WR" },
-          { id: "o10",label: "Y",  x: 78, y: 32, type: "TE" },
-          { id: "o11",label: "Z",  x: 92, y: 32, type: "WR" }
-        ]
-      },
-      GUN_PRO: {
-        name: "GUN PRO",
-        players: [
-          { id: "o1", label: "LT", x: 40, y: 32, type: "OL" },
-          { id: "o2", label: "LG", x: 45, y: 32, type: "OL" },
-          { id: "o3", label: "C",  x: 50, y: 32, type: "CENTER" },
-          { id: "o4", label: "RG", x: 55, y: 32, type: "OL" },
-          { id: "o5", label: "RT", x: 60, y: 32, type: "OL" },
-          { id: "o6", label: "Y",  x: 65, y: 32, type: "TE" },
-          { id: "o7", label: "QB", x: 50, y: 40, type: "QB" },
-          { id: "o8", label: "3",  x: 43, y: 44, type: "RB" },
-          { id: "o9", label: "4",  x: 57, y: 44, type: "RB" },
-          { id: "o10",label: "X",  x: 8,  y: 32, type: "WR" },
-          { id: "o11",label: "Z",  x: 92, y: 32, type: "WR" }
-        ]
-      },
-      I_FORM_WING: {
-        name: "I-FORM WING",
-        players: [
-          { id: "o1", label: "LT", x: 40, y: 32, type: "OL" },
-          { id: "o2", label: "LG", x: 45, y: 32, type: "OL" },
-          { id: "o3", label: "C",  x: 50, y: 32, type: "CENTER" },
-          { id: "o4", label: "RG", x: 55, y: 32, type: "OL" },
-          { id: "o5", label: "RT", x: 60, y: 32, type: "OL" },
-          { id: "o6", label: "Y",  x: 65, y: 32, type: "TE" },
-          { id: "o7", label: "Z",  x: 70, y: 34, type: "WR" },
-          { id: "o8", label: "QB", x: 50, y: 36, type: "QB" },
-          { id: "o9", label: "2",  x: 50, y: 42, type: "FB" },
-          { id: "o10",label: "3",  x: 50, y: 48, type: "RB" },
-          { id: "o11",label: "X",  x: 8,  y: 32, type: "WR" }
-        ]
-      }
-    };
-
-    // --- FORMACIONES DEFENSIVAS BASE ---
-    const DEFENSIVE_FORMATIONS = {
-      DEF_43: {
-        name: "4-3 Base",
-        players: [
-          { id: "d1", label: "DE", x: 38, y: 26, type: "DEF" },
-          { id: "d2", label: "DT", x: 46, y: 26, type: "DEF" },
-          { id: "d3", label: "DT", x: 54, y: 26, type: "DEF" },
-          { id: "d4", label: "DE", x: 62, y: 26, type: "DEF" },
-          { id: "d5", label: "WLB",x: 32, y: 20, type: "DEF" },
-          { id: "d6", label: "MLB",x: 50, y: 20, type: "DEF" },
-          { id: "d7", label: "SLB",x: 68, y: 20, type: "DEF" },
-          { id: "d8", label: "CB", x: 8,  y: 22, type: "DEF" },
-          { id: "d9", label: "CB", x: 92, y: 22, type: "DEF" },
-          { id: "d10",label: "FS", x: 35, y: 10, type: "DEF" },
-          { id: "d11",label: "SS", x: 65, y: 12, type: "DEF" }
-        ]
-      },
-      DEF_34: {
-        name: "3-4 Base",
-        players: [
-          { id: "d1", label: "DE", x: 40, y: 26, type: "DEF" },
-          { id: "d2", label: "NT", x: 50, y: 26, type: "DEF" },
-          { id: "d3", label: "DE", x: 60, y: 26, type: "DEF" },
-          { id: "d4", label: "LOLB",x: 30,y: 22, type: "DEF" },
-          { id: "d5", label: "LILB",x: 44,y: 19, type: "DEF" },
-          { id: "d6", label: "RILB",x: 56,y: 19, type: "DEF" },
-          { id: "d7", label: "ROLB",x: 70,y: 22, type: "DEF" },
-          { id: "d8", label: "CB",  x: 8, y: 22, type: "DEF" },
-          { id: "d9", label: "CB",  x: 92,y: 22, type: "DEF" },
-          { id: "d10",label: "FS",  x: 38,y: 10, type: "DEF" },
-          { id: "d11",label: "SS",  x: 62,y: 10, type: "DEF" }
-        ]
-      },
-      DEF_NICKEL: {
-        name: "Nickel 4-2-5",
-        players: [
-          { id: "d1", label: "DE", x: 38, y: 26, type: "DEF" },
-          { id: "d2", label: "DT", x: 46, y: 26, type: "DEF" },
-          { id: "d3", label: "DT", x: 54, y: 26, type: "DEF" },
-          { id: "d4", label: "DE", x: 62, y: 26, type: "DEF" },
-          { id: "d5", label: "MLB",x: 44, y: 20, type: "DEF" },
-          { id: "d6", label: "WLB",x: 56, y: 20, type: "DEF" },
-          { id: "d7", label: "NCB",x: 24, y: 22, type: "DEF" },
-          { id: "d8", label: "CB", x: 8,  y: 22, type: "DEF" },
-          { id: "d9", label: "CB", x: 92, y: 22, type: "DEF" },
-          { id: "d10",label: "FS", x: 35, y: 10, type: "DEF" },
-          { id: "d11",label: "SS", x: 65, y: 12, type: "DEF" }
-        ]
-      },
-      DEF_COVER2: {
-        name: "Cover 2",
-        players: [
-          { id: "d1", label: "DE", x: 38, y: 26, type: "DEF" },
-          { id: "d2", label: "DT", x: 46, y: 26, type: "DEF" },
-          { id: "d3", label: "DT", x: 54, y: 26, type: "DEF" },
-          { id: "d4", label: "DE", x: 62, y: 26, type: "DEF" },
-          { id: "d5", label: "WLB",x: 32, y: 21, type: "DEF" },
-          { id: "d6", label: "MLB",x: 50, y: 21, type: "DEF" },
-          { id: "d7", label: "SLB",x: 68, y: 21, type: "DEF" },
-          { id: "d8", label: "CB", x: 8,  y: 23, type: "DEF" },
-          { id: "d9", label: "CB", x: 92, y: 23, type: "DEF" },
-          { id: "d10",label: "FS", x: 28, y: 8,  type: "DEF" },
-          { id: "d11",label: "SS", x: 72, y: 8,  type: "DEF" }
-        ]
-      },
-      DEF_NONE: {
-        name: "Sin Defensa",
-        players: []
-      }
-    };
-
-    // ESTADO DE LA APLICACIÓN
-    const canvas = document.getElementById("tactics-board");
-    const ctx = canvas.getContext("2d");
-
-    let currentOffenseKey = "SPREAD";
-    let currentDefenseKey = "DEF_43";
-    let activeMode = "move"; // 'move', 'draw', 'erase'
-    let lineStyle = "arrow";  // 'arrow', 'solid', 'dashed'
-    let strokeColor = "#facc15"; // Amarillo por defecto
-    let strokeWidth = 6;
-
-    let players = [];
-    let drawings = []; // Array de trazados
-    let currentPath = null;
-    let draggedPlayer = null;
-    let touchOffset = { x: 0, y: 0 };
-
-    // INICIALIZACIÓN Y ESCALADO
-    function resizeCanvas() {
-      const container = document.getElementById("board-container");
-      const rect = container.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      
-      ctx.scale(dpr, dpr);
-      render();
-    }
-
-    function initBoard() {
-      loadFormations(currentOffenseKey, currentDefenseKey);
-      window.addEventListener("resize", resizeCanvas);
-      resizeCanvas();
-    }
-
-    function loadFormations(offKey, defKey) {
-      const offList = OFFENSIVE_FORMATIONS[offKey]?.players || [];
-      const defList = DEFENSIVE_FORMATIONS[defKey]?.players || [];
-      
-      // Clonar para permitir mover individualmente
-      players = [
-        ...offList.map(p => ({ ...p, side: "offense" })),
-        ...defList.map(p => ({ ...p, side: "defense" }))
-      ];
-    }
-
-    // DIBUJO DEL CAMPO Y JUGADORES
-    function render() {
-      const w = canvas.width / (window.devicePixelRatio || 1);
-      const h = canvas.height / (window.devicePixelRatio || 1);
-
-      // Fondo del campo de juego (Césped verde táctico)
-      ctx.fillStyle = "#1e3a1e";
-      ctx.fillRect(0, 0, w, h);
-
-      // Franjar alternas de césped
-      ctx.fillStyle = "rgba(0, 0, 0, 0.08)";
-      const stripWidth = w / 10;
-      for (let i = 0; i < 10; i += 2) {
-        ctx.fillRect(i * stripWidth, 0, stripWidth, h);
-      }
-
-      // Líneas de campo (Blancas tácticas)
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
-      ctx.lineWidth = 2;
-
-      // Líneas laterales
-      ctx.strokeRect(10, 10, w - 20, h - 20);
-
-      // Línea de scrimmage (Amarillo dorado de scrimmage)
-      const losY = h * 0.30;
-      ctx.strokeStyle = "#eab308";
-      ctx.lineWidth = 3;
-      ctx.setLineDash([8, 6]);
-      ctx.beginPath();
-      ctx.moveTo(10, losY);
-      ctx.lineTo(w - 10, losY);
-      ctx.stroke();
-      ctx.setLineDash([]); // Reset dash
-
-      // Marcas de Yardas horizontales
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.25)";
-      ctx.lineWidth = 1.5;
-      for (let yRatio = 0.1; yRatio < 1; yRatio += 0.1) {
-        const y = h * yRatio;
-        ctx.beginPath();
-        ctx.moveTo(10, y);
-        ctx.lineTo(w - 10, y);
-        ctx.stroke();
-      }
-
-      // DIBUJAR TRAZOS DE RUTAS
-      drawings.forEach(path => drawPath(path));
-      if (currentPath) drawPath(currentPath);
-
-      // DIBUJAR JUGADORES
-      players.forEach(p => drawPlayer(p, w, h));
-    }
-
-    function drawPath(path) {
-      if (path.points.length < 2) return;
-
-      ctx.beginPath();
-      ctx.strokeStyle = path.color;
-      ctx.lineWidth = path.width;
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-
-      if (path.style === "dashed") {
-        ctx.setLineDash([10, 8]);
-      } else {
-        ctx.setLineDash([]);
-      }
-
-      ctx.moveTo(path.points[0].x, path.points[0].y);
-      for (let i = 1; i < path.points.length; i++) {
-        ctx.lineTo(path.points[i].x, path.points[i].y);
-      }
-      ctx.stroke();
-      ctx.setLineDash([]); // Restablecer
-
-      // Punta de flecha si el estilo es 'arrow'
-      if (path.style === "arrow" && path.points.length >= 2) {
-        const p1 = path.points[path.points.length - 2];
-        const p2 = path.points[path.points.length - 1];
-        const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
-        const headLen = path.width * 2.5 + 6;
-
-        ctx.beginPath();
-        ctx.fillStyle = path.color;
-        ctx.moveTo(p2.x, p2.y);
-        ctx.lineTo(
-          p2.x - headLen * Math.cos(angle - Math.PI / 6),
-          p2.y - headLen * Math.sin(angle - Math.PI / 6)
-        );
-        ctx.lineTo(
-          p2.x - headLen * Math.cos(angle + Math.PI / 6),
-          p2.y - headLen * Math.sin(angle + Math.PI / 6)
-        );
-        ctx.closePath();
-        ctx.fill();
-      }
-    }
-
-    function drawPlayer(p, w, h) {
-      const px = (p.x / 100) * w;
-      const py = (p.y / 100) * h;
-      const radius = Math.min(w, h) * 0.022 + 8; // Adaptativo para pantallas táctiles
-
-      ctx.shadowBlur = 6;
-      ctx.shadowColor = "rgba(0,0,0,0.5)";
-
-      if (p.side === "offense") {
-        if (p.type === "CENTER") {
-          // El Centro se representa con un Cuadrado con X dentro (Estándar de Playbook)
-          const size = radius * 1.8;
-          ctx.fillStyle = "#2563eb"; // Azul
-          ctx.strokeStyle = "#ffffff";
-          ctx.lineWidth = 2.5;
-          ctx.fillRect(px - size/2, py - size/2, size, size);
-          ctx.strokeRect(px - size/2, py - size/2, size, size);
-
-          // X interior
-          ctx.beginPath();
-          ctx.strokeStyle = "#ffffff";
-          ctx.lineWidth = 2;
-          ctx.moveTo(px - size/3, py - size/3);
-          ctx.lineTo(px + size/3, py + size/3);
-          ctx.moveTo(px + size/3, py - size/3);
-          ctx.lineTo(px - size/3, py + size/3);
-          ctx.stroke();
-        } else {
-          // Atacantes: Círculo Azul con borde blanco
-          ctx.beginPath();
-          ctx.arc(px, py, radius, 0, Math.PI * 2);
-          ctx.fillStyle = "#2563eb";
-          ctx.fill();
-          ctx.lineWidth = 2.5;
-          ctx.strokeStyle = "#ffffff";
-          ctx.stroke();
-
-          // Texto de la Posición
-          ctx.fillStyle = "#ffffff";
-          ctx.font = `bold ${Math.max(11, radius * 0.85)}px sans-serif`;
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          ctx.fillText(p.label, px, py + 1);
-        }
-      } else {
-        // Defensores: Círculo Rojo/Sombra con texto blanco
-        ctx.beginPath();
-        ctx.arc(px, py, radius, 0, Math.PI * 2);
-        ctx.fillStyle = "#dc2626"; // Rojo
-        ctx.fill();
-        ctx.lineWidth = 2.5;
-        ctx.strokeStyle = "#ffffff";
-        ctx.stroke();
-
-        ctx.fillStyle = "#ffffff";
-        ctx.font = `bold ${Math.max(10, radius * 0.75)}px sans-serif`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(p.label, px, py + 1);
-      }
-
-      ctx.shadowBlur = 0; // Reset sombra
-    }
-
-    // MANEJO DE EVENTOS (MOUSE & TOUCH FLUIDO)
-    function getCanvasCoords(e) {
-      const rect = canvas.getBoundingClientRect();
-      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-      return {
-        x: clientX - rect.left,
-        y: clientY - rect.top
-      };
-    }
-
-    function handleStart(e) {
-      e.preventDefault();
-      const coords = getCanvasCoords(e);
-      const w = canvas.width / (window.devicePixelRatio || 1);
-      const h = canvas.height / (window.devicePixelRatio || 1);
-
-      if (activeMode === "move") {
-        // Detectar si tocamos una ficha
-        const hitRadius = Math.min(w, h) * 0.04 + 10;
-        for (let i = players.length - 1; i >= 0; i--) {
-          const p = players[i];
-          const px = (p.x / 100) * w;
-          const py = (p.y / 100) * h;
-          const dist = Math.hypot(coords.x - px, coords.y - py);
-          if (dist <= hitRadius) {
-            draggedPlayer = p;
-            touchOffset = { x: coords.x - px, y: coords.y - py };
-            break;
-          }
-        }
-      } else if (activeMode === "draw") {
-        currentPath = {
-          color: strokeColor,
-          width: parseInt(strokeWidth, 10),
-          style: lineStyle,
-          points: [coords]
+        // Application State
+        const state = {
+            viewMode: 'both', // 'both', 'offense', 'defense'
+            fieldView: 'half_field', // 'half_field', 'full_field', 'red_zone'
+            hashType: 'nfl',
+            selectedTool: 'select', // 'select', 'eraser', 'route', 'blitz', 'coverageLine', 'block', 'motion', 'zoneFlat', 'zoneHook', 'zoneDeepThird', 'zoneDeepHalf', 'zoneCustomRect'
+            drawColor: '#f59e0b',
+            zoneOpacity: 0.3,
+            
+            // Core tactical elements
+            players: [],
+            drawings: [],
+            zones: [],
+            
+            // Selection & Interaction
+            selectedItem: null, // { type: 'player'|'zone'|'drawing', id }
+            isDragging: false,
+            dragOffset: { x: 0, y: 0 },
+            
+            // Drawing in progress
+            currentPath: null,
+            isDrawingPath: false,
+            
+            // History for Undo
+            history: []
         };
-      } else if (activeMode === "erase") {
-        // Borrar trazo más cercano al toque
-        eraseNearestPath(coords);
-      }
-    }
 
-    function handleMove(e) {
-      if (!draggedPlayer && !currentPath) return;
-      e.preventDefault();
-      const coords = getCanvasCoords(e);
-      const w = canvas.width / (window.devicePixelRatio || 1);
-      const h = canvas.height / (window.devicePixelRatio || 1);
+        // Standard Formations Library
+        const OFFENSE_PRESETS = {
+            shotgun_spread: [
+                { label: 'C', symbol: 'O', x: 0.5, y: 0.5, color: '#2563eb' },
+                { label: 'LG', symbol: 'O', x: 0.46, y: 0.5, color: '#2563eb' },
+                { label: 'RG', symbol: 'O', x: 0.54, y: 0.5, color: '#2563eb' },
+                { label: 'LT', symbol: 'O', x: 0.42, y: 0.5, color: '#2563eb' },
+                { label: 'RT', symbol: 'O', x: 0.58, y: 0.5, color: '#2563eb' },
+                { label: 'QB', symbol: 'O', x: 0.5, y: 0.58, color: '#1d4ed8' },
+                { label: 'RB', symbol: 'O', x: 0.44, y: 0.58, color: '#1d4ed8' },
+                { label: 'WR1', symbol: 'O', x: 0.12, y: 0.51, color: '#3b82f6' },
+                { label: 'WR2', symbol: 'O', x: 0.25, y: 0.51, color: '#3b82f6' },
+                { label: 'WR3', symbol: 'O', x: 0.88, y: 0.51, color: '#3b82f6' },
+                { label: 'TE', symbol: 'O', x: 0.63, y: 0.5, color: '#1e40af' }
+            ],
+            singleback_ace: [
+                { label: 'C', symbol: 'O', x: 0.5, y: 0.5, color: '#2563eb' },
+                { label: 'LG', symbol: 'O', x: 0.46, y: 0.5, color: '#2563eb' },
+                { label: 'RG', symbol: 'O', x: 0.54, y: 0.5, color: '#2563eb' },
+                { label: 'LT', symbol: 'O', x: 0.42, y: 0.5, color: '#2563eb' },
+                { label: 'RT', symbol: 'O', x: 0.58, y: 0.5, color: '#2563eb' },
+                { label: 'TE1', symbol: 'O', x: 0.63, y: 0.5, color: '#1e40af' },
+                { label: 'TE2', symbol: 'O', x: 0.37, y: 0.5, color: '#1e40af' },
+                { label: 'QB', symbol: 'O', x: 0.5, y: 0.54, color: '#1d4ed8' },
+                { label: 'RB', symbol: 'O', x: 0.5, y: 0.62, color: '#1d4ed8' },
+                { label: 'WR1', symbol: 'O', x: 0.1, y: 0.51, color: '#3b82f6' },
+                { label: 'WR2', symbol: 'O', x: 0.9, y: 0.51, color: '#3b82f6' }
+            ],
+            i_formation: [
+                { label: 'C', symbol: 'O', x: 0.5, y: 0.5, color: '#2563eb' },
+                { label: 'LG', symbol: 'O', x: 0.46, y: 0.5, color: '#2563eb' },
+                { label: 'RG', symbol: 'O', x: 0.54, y: 0.5, color: '#2563eb' },
+                { label: 'LT', symbol: 'O', x: 0.42, y: 0.5, color: '#2563eb' },
+                { label: 'RT', symbol: 'O', x: 0.58, y: 0.5, color: '#2563eb' },
+                { label: 'TE', symbol: 'O', x: 0.63, y: 0.5, color: '#1e40af' },
+                { label: 'QB', symbol: 'O', x: 0.5, y: 0.54, color: '#1d4ed8' },
+                { label: 'FB', symbol: 'O', x: 0.5, y: 0.6, color: '#1d4ed8' },
+                { label: 'RB', symbol: 'O', x: 0.5, y: 0.67, color: '#1d4ed8' },
+                { label: 'WR1', symbol: 'O', x: 0.12, y: 0.51, color: '#3b82f6' },
+                { label: 'WR2', symbol: 'O', x: 0.88, y: 0.51, color: '#3b82f6' }
+            ],
+            trips_right: [
+                { label: 'C', symbol: 'O', x: 0.5, y: 0.5, color: '#2563eb' },
+                { label: 'LG', symbol: 'O', x: 0.46, y: 0.5, color: '#2563eb' },
+                { label: 'RG', symbol: 'O', x: 0.54, y: 0.5, color: '#2563eb' },
+                { label: 'LT', symbol: 'O', x: 0.42, y: 0.5, color: '#2563eb' },
+                { label: 'RT', symbol: 'O', x: 0.58, y: 0.5, color: '#2563eb' },
+                { label: 'QB', symbol: 'O', x: 0.5, y: 0.58, color: '#1d4ed8' },
+                { label: 'RB', symbol: 'O', x: 0.44, y: 0.58, color: '#1d4ed8' },
+                { label: 'WR1', symbol: 'O', x: 0.12, y: 0.51, color: '#3b82f6' },
+                { label: 'WR2', symbol: 'O', x: 0.75, y: 0.51, color: '#3b82f6' },
+                { label: 'WR3', symbol: 'O', x: 0.83, y: 0.51, color: '#3b82f6' },
+                { label: 'WR4', symbol: 'O', x: 0.91, y: 0.51, color: '#3b82f6' }
+            ],
+            pistol: [
+                { label: 'C', symbol: 'O', x: 0.5, y: 0.5, color: '#2563eb' },
+                { label: 'LG', symbol: 'O', x: 0.46, y: 0.5, color: '#2563eb' },
+                { label: 'RG', symbol: 'O', x: 0.54, y: 0.5, color: '#2563eb' },
+                { label: 'LT', symbol: 'O', x: 0.42, y: 0.5, color: '#2563eb' },
+                { label: 'RT', symbol: 'O', x: 0.58, y: 0.5, color: '#2563eb' },
+                { label: 'TE', symbol: 'O', x: 0.63, y: 0.5, color: '#1e40af' },
+                { label: 'QB', symbol: 'O', x: 0.5, y: 0.55, color: '#1d4ed8' },
+                { label: 'RB', symbol: 'O', x: 0.5, y: 0.62, color: '#1d4ed8' },
+                { label: 'WR1', symbol: 'O', x: 0.12, y: 0.51, color: '#3b82f6' },
+                { label: 'WR2', symbol: 'O', x: 0.25, y: 0.51, color: '#3b82f6' },
+                { label: 'WR3', symbol: 'O', x: 0.88, y: 0.51, color: '#3b82f6' }
+            ],
+            empty_5wr: [
+                { label: 'C', symbol: 'O', x: 0.5, y: 0.5, color: '#2563eb' },
+                { label: 'LG', symbol: 'O', x: 0.46, y: 0.5, color: '#2563eb' },
+                { label: 'RG', symbol: 'O', x: 0.54, y: 0.5, color: '#2563eb' },
+                { label: 'LT', symbol: 'O', x: 0.42, y: 0.5, color: '#2563eb' },
+                { label: 'RT', symbol: 'O', x: 0.58, y: 0.5, color: '#2563eb' },
+                { label: 'QB', symbol: 'O', x: 0.5, y: 0.58, color: '#1d4ed8' },
+                { label: 'WR1', symbol: 'O', x: 0.1, y: 0.51, color: '#3b82f6' },
+                { label: 'WR2', symbol: 'O', x: 0.22, y: 0.51, color: '#3b82f6' },
+                { label: 'WR3', symbol: 'O', x: 0.34, y: 0.51, color: '#3b82f6' },
+                { label: 'WR4', symbol: 'O', x: 0.78, y: 0.51, color: '#3b82f6' },
+                { label: 'WR5', symbol: 'O', x: 0.9, y: 0.51, color: '#3b82f6' }
+            ]
+        };
 
-      if (draggedPlayer) {
-        const newX = ((coords.x - touchOffset.x) / w) * 100;
-        const newY = ((coords.y - touchOffset.y) / h) * 100;
-        draggedPlayer.x = Math.max(2, Math.min(98, newX));
-        draggedPlayer.y = Math.max(2, Math.min(98, newY));
-        render();
-      } else if (currentPath) {
-        currentPath.points.push(coords);
-        render();
-      }
-    }
+        const DEFENSE_PRESETS = {
+            def_43_base: [
+                { label: 'RE', symbol: 'X', x: 0.41, y: 0.47, color: '#dc2626' },
+                { label: 'DT', symbol: 'X', x: 0.47, y: 0.47, color: '#dc2626' },
+                { label: 'DT', symbol: 'X', x: 0.53, y: 0.47, color: '#dc2626' },
+                { label: 'LE', symbol: 'X', x: 0.59, y: 0.47, color: '#dc2626' },
+                { label: 'WLB', symbol: 'X', x: 0.38, y: 0.4, color: '#ef4444' },
+                { label: 'MLB', symbol: 'X', x: 0.5, y: 0.4, color: '#ef4444' },
+                { label: 'SLB', symbol: 'X', x: 0.62, y: 0.4, color: '#ef4444' },
+                { label: 'CB1', symbol: 'X', x: 0.12, y: 0.44, color: '#f87171' },
+                { label: 'CB2', symbol: 'X', x: 0.88, y: 0.44, color: '#f87171' },
+                { label: 'FS', symbol: 'X', x: 0.35, y: 0.25, color: '#f87171' },
+                { label: 'SS', symbol: 'X', x: 0.65, y: 0.3, color: '#f87171' }
+            ],
+            def_34_base: [
+                { label: 'DE', symbol: 'X', x: 0.43, y: 0.47, color: '#dc2626' },
+                { label: 'NT', symbol: 'X', x: 0.5, y: 0.47, color: '#dc2626' },
+                { label: 'DE', symbol: 'X', x: 0.57, y: 0.47, color: '#dc2626' },
+                { label: 'LOLB', symbol: 'X', x: 0.35, y: 0.43, color: '#ef4444' },
+                { label: 'LILB', symbol: 'X', x: 0.46, y: 0.4, color: '#ef4444' },
+                { label: 'RILB', symbol: 'X', x: 0.54, y: 0.4, color: '#ef4444' },
+                { label: 'ROLB', symbol: 'X', x: 0.65, y: 0.43, color: '#ef4444' },
+                { label: 'CB1', symbol: 'X', x: 0.12, y: 0.44, color: '#f87171' },
+                { label: 'CB2', symbol: 'X', x: 0.88, y: 0.44, color: '#f87171' },
+                { label: 'FS', symbol: 'X', x: 0.4, y: 0.25, color: '#f87171' },
+                { label: 'SS', symbol: 'X', x: 0.6, y: 0.28, color: '#f87171' }
+            ],
+            def_nickel_245: [
+                { label: 'DE', symbol: 'X', x: 0.44, y: 0.47, color: '#dc2626' },
+                { label: 'DE', symbol: 'X', x: 0.56, y: 0.47, color: '#dc2626' },
+                { label: 'OLB', symbol: 'X', x: 0.37, y: 0.45, color: '#ef4444' },
+                { label: 'ILB', symbol: 'X', x: 0.47, y: 0.4, color: '#ef4444' },
+                { label: 'ILB', symbol: 'X', x: 0.53, y: 0.4, color: '#ef4444' },
+                { label: 'OLB', symbol: 'X', x: 0.63, y: 0.45, color: '#ef4444' },
+                { label: 'NCB', symbol: 'X', x: 0.25, y: 0.44, color: '#f87171' },
+                { label: 'CB1', symbol: 'X', x: 0.12, y: 0.44, color: '#f87171' },
+                { label: 'CB2', symbol: 'X', x: 0.88, y: 0.44, color: '#f87171' },
+                { label: 'FS', symbol: 'X', x: 0.38, y: 0.25, color: '#f87171' },
+                { label: 'SS', symbol: 'X', x: 0.62, y: 0.25, color: '#f87171' }
+            ],
+            def_cover2_shell: [
+                { label: 'DE', symbol: 'X', x: 0.41, y: 0.47, color: '#dc2626' },
+                { label: 'DT', symbol: 'X', x: 0.47, y: 0.47, color: '#dc2626' },
+                { label: 'DT', symbol: 'X', x: 0.53, y: 0.47, color: '#dc2626' },
+                { label: 'DE', symbol: 'X', x: 0.59, y: 0.47, color: '#dc2626' },
+                { label: 'WLB', symbol: 'X', x: 0.36, y: 0.41, color: '#ef4444' },
+                { label: 'MLB', symbol: 'X', x: 0.5, y: 0.38, color: '#ef4444' },
+                { label: 'SLB', symbol: 'X', x: 0.64, y: 0.41, color: '#ef4444' },
+                { label: 'CB1', symbol: 'X', x: 0.12, y: 0.45, color: '#f87171' },
+                { label: 'CB2', symbol: 'X', x: 0.88, y: 0.45, color: '#f87171' },
+                { label: 'FS', symbol: 'X', x: 0.28, y: 0.22, color: '#f87171' },
+                { label: 'SS', symbol: 'X', x: 0.72, y: 0.22, color: '#f87171' }
+            ],
+            def_cover3_sky: [
+                { label: 'DE', symbol: 'X', x: 0.41, y: 0.47, color: '#dc2626' },
+                { label: 'DT', symbol: 'X', x: 0.47, y: 0.47, color: '#dc2626' },
+                { label: 'DT', symbol: 'X', x: 0.53, y: 0.47, color: '#dc2626' },
+                { label: 'DE', symbol: 'X', x: 0.59, y: 0.47, color: '#dc2626' },
+                { label: 'WLB', symbol: 'X', x: 0.38, y: 0.4, color: '#ef4444' },
+                { label: 'MLB', symbol: 'X', x: 0.5, y: 0.4, color: '#ef4444' },
+                { label: 'SLB', symbol: 'X', x: 0.62, y: 0.4, color: '#ef4444' },
+                { label: 'CB1', symbol: 'X', x: 0.15, y: 0.28, color: '#f87171' },
+                { label: 'CB2', symbol: 'X', x: 0.85, y: 0.28, color: '#f87171' },
+                { label: 'FS', symbol: 'X', x: 0.5, y: 0.18, color: '#f87171' },
+                { label: 'SS', symbol: 'X', x: 0.68, y: 0.38, color: '#f87171' }
+            ],
+            def_goalline: [
+                { label: 'DE', symbol: 'X', x: 0.38, y: 0.48, color: '#b91c1c' },
+                { label: 'DT', symbol: 'X', x: 0.44, y: 0.48, color: '#b91c1c' },
+                { label: 'NT', symbol: 'X', x: 0.5, y: 0.48, color: '#b91c1c' },
+                { label: 'DT', symbol: 'X', x: 0.56, y: 0.48, color: '#b91c1c' },
+                { label: 'DE', symbol: 'X', x: 0.62, y: 0.48, color: '#b91c1c' },
+                { label: 'LB', symbol: 'X', x: 0.42, y: 0.43, color: '#dc2626' },
+                { label: 'MLB', symbol: 'X', x: 0.5, y: 0.43, color: '#dc2626' },
+                { label: 'LB', symbol: 'X', x: 0.58, y: 0.43, color: '#dc2626' },
+                { label: 'CB1', symbol: 'X', x: 0.15, y: 0.45, color: '#ef4444' },
+                { label: 'CB2', symbol: 'X', x: 0.85, y: 0.45, color: '#ef4444' },
+                { label: 'S', symbol: 'X', x: 0.5, y: 0.3, color: '#ef4444' }
+            ]
+        };
 
-    function handleEnd(e) {
-      if (currentPath) {
-        if (currentPath.points.length > 1) {
-          drawings.push(currentPath);
+        // Initialize Canvas Resize Handler
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            const w = container.clientWidth - 32;
+            const h = container.clientHeight - 32;
+            
+            // Maintain 16:9 ratio for smooth tactical board view
+            let canvasW = w;
+            let canvasH = w * (9/16);
+            if (canvasH > h) {
+                canvasH = h;
+                canvasW = h * (16/9);
+            }
+
+            canvas.width = Math.max(600, canvasW);
+            canvas.height = Math.max(350, canvasH);
+            render();
         }
-        currentPath = null;
-        render();
-      }
-      draggedPlayer = null;
-    }
 
-    function eraseNearestPath(coords) {
-      const threshold = 20;
-      let removed = false;
-      drawings = drawings.filter(path => {
-        if (removed) return true;
-        const isNear = path.points.some(pt => Math.hypot(pt.x - coords.x, pt.y - coords.y) < threshold);
-        if (isNear) removed = true;
-        return !isNear;
-      });
-      render();
-    }
+        window.addEventListener('resize', resizeCanvas);
 
-    // EVENT LISTENERS DEL CANVAS
-    canvas.addEventListener("mousedown", handleStart);
-    canvas.addEventListener("mousemove", handleMove);
-    window.addEventListener("mouseup", handleEnd);
+        // Load Default Scrimmage Formation
+        function loadDefaultSetup() {
+            state.players = [];
+            state.drawings = [];
+            state.zones = [];
+            
+            // Add Offense
+            OFFENSE_PRESETS.shotgun_spread.forEach((p, idx) => {
+                state.players.push({ ...p, id: 'off_' + idx, team: 'offense' });
+            });
 
-    canvas.addEventListener("touchstart", handleStart, { passive: false });
-    canvas.addEventListener("touchmove", handleMove, { passive: false });
-    canvas.addEventListener("touchend", handleEnd, { passive: false });
+            // Add Defense
+            OFFENSE_PRESETS_DEFENSE = DEFENSE_PRESETS.def_cover3_sky;
+            OFFENSE_PRESETS_DEFENSE.forEach((p, idx) => {
+                state.players.push({ ...p, id: 'def_' + idx, team: 'defense' });
+            });
 
-    // CONTROLES DE INTERFAZ
-    document.getElementById("offense-select").addEventListener("change", (e) => {
-      currentOffenseKey = e.target.value;
-      loadFormations(currentOffenseKey, currentDefenseKey);
-      render();
-    });
+            // Add Default Defensive Coverage Zones for illustration
+            state.zones.push(
+                { id: 'z1', label: 'DEEP 1/3', color: '#22c55e', opacity: 0.25, x: 0.18, y: 0.22, w: 0.28, h: 0.24 },
+                { id: 'z2', label: 'DEEP 1/3', color: '#22c55e', opacity: 0.25, x: 0.5, y: 0.18, w: 0.32, h: 0.22 },
+                { id: 'z3', label: 'DEEP 1/3', color: '#22c55e', opacity: 0.25, x: 0.82, y: 0.22, w: 0.28, h: 0.24 },
+                { id: 'z4', label: 'FLAT', color: '#f59e0b', opacity: 0.25, x: 0.18, y: 0.42, w: 0.22, h: 0.14 },
+                { id: 'z5', label: 'HOOK/CURL', color: '#3b82f6', opacity: 0.25, x: 0.38, y: 0.38, w: 0.2, h: 0.16 }
+            );
 
-    document.getElementById("defense-select").addEventListener("change", (e) => {
-      currentDefenseKey = e.target.value;
-      loadFormations(currentOffenseKey, currentDefenseKey);
-      render();
-    });
+            saveStateToHistory();
+            render();
+        }
 
-    // BOTONES DE MODO
-    const modeBtns = {
-      move: document.getElementById("mode-move"),
-      draw: document.getElementById("mode-draw"),
-      erase: document.getElementById("mode-erase")
-    };
+        // Save State for Undo
+        function saveStateToHistory() {
+            if (state.history.length > 20) state.history.shift();
+            state.history.push(JSON.stringify({
+                players: state.players,
+                drawings: state.drawings,
+                zones: state.zones
+            }));
+        }
 
-    Object.keys(modeBtns).forEach(key => {
-      modeBtns[key].addEventListener("click", () => {
-        activeMode = key;
-        Object.values(modeBtns).forEach(btn => {
-          btn.className = "mode-btn text-slate-300 font-medium px-3 py-1 rounded-md hover:text-white transition flex items-center gap-1";
+        function undo() {
+            if (state.history.length <= 1) return;
+            state.history.pop(); // Remove current
+            const previous = JSON.parse(state.history[state.history.length - 1]);
+            state.players = previous.players;
+            state.drawings = previous.drawings;
+            state.zones = previous.zones;
+            state.selectedItem = null;
+            updateInspector();
+            render();
+        }
+
+        // Canvas Coordinates Helpers
+        function normToCanvas(nx, ny) {
+            return { x: nx * canvas.width, y: ny * canvas.height };
+        }
+
+        function canvasToNorm(cx, cy) {
+            return { x: cx / canvas.width, y: cy / canvas.height };
+        }
+
+        // Rendering Engine
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. Draw Football Field
+            drawField();
+
+            // 2. Draw Defensive Coverage Zones (Underneath players & paths)
+            drawZones();
+
+            // 3. Draw Tactical Routes, Blitzes, Motions
+            drawTacticalLines();
+
+            // 4. Draw Players
+            drawPlayers();
+        }
+
+        // Field Graphics
+        function drawField() {
+            const w = canvas.width;
+            const h = canvas.height;
+
+            // Turf Background Gradient
+            const grassGrad = ctx.createLinearGradient(0, 0, 0, h);
+            grassGrad.addColorStop(0, '#064e3b');
+            grassGrad.addColorStop(0.5, '#047857');
+            grassGrad.addColorStop(1, '#065f46');
+            ctx.fillStyle = grassGrad;
+            ctx.fillRect(0, 0, w, h);
+
+            // Subtle Yard Stripes (10 Yard Alternating Stripes)
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
+            const stripeWidth = h / 6;
+            for (let i = 0; i < 6; i += 2) {
+                ctx.fillRect(0, i * stripeWidth, w, stripeWidth);
+            }
+
+            // Line of Scrimmage (LOS)
+            const losY = h * 0.5;
+            ctx.beginPath();
+            ctx.strokeStyle = '#38bdf8'; // Blue LOS line
+            ctx.lineWidth = 3;
+            ctx.setLineDash([8, 6]);
+            ctx.moveTo(0, losY);
+            ctx.lineTo(w, losY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // First Down Line (10 Yds Ahead)
+            const firstDownY = h * 0.28;
+            ctx.beginPath();
+            ctx.strokeStyle = '#facc15'; // Yellow First Down Line
+            ctx.lineWidth = 2.5;
+            ctx.moveTo(0, firstDownY);
+            ctx.lineTo(w, firstDownY);
+            ctx.stroke();
+
+            // Field Yard Lines & Markings
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.lineWidth = 1.5;
+
+            // Side Lines Boundary
+            ctx.strokeRect(15, 15, w - 30, h - 30);
+
+            // Hash Marks
+            const hashLeft = w * 0.38;
+            const hashRight = w * 0.62;
+            const stepY = h / 12;
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.font = 'bold 10px monospace';
+            ctx.textAlign = 'center';
+
+            for (let i = 1; i < 12; i++) {
+                const y = i * stepY;
+                ctx.beginPath();
+                ctx.moveTo(hashLeft - 8, y);
+                ctx.lineTo(hashLeft + 8, y);
+                ctx.moveTo(hashRight - 8, y);
+                ctx.lineTo(hashRight + 8, y);
+                ctx.stroke();
+
+                // Yard Numbers on sidelines
+                if (i % 2 === 0) {
+                    const yardVal = 50 - Math.abs(5 - i) * 10;
+                    ctx.fillText(yardVal.toString(), 30, y + 4);
+                    ctx.fillText(yardVal.toString(), w - 30, y + 4);
+                }
+            }
+        }
+
+        // Draw Defensive Zones
+        function drawZones() {
+            state.zones.forEach(zone => {
+                const center = normToCanvas(zone.x, zone.y);
+                const zw = zone.w * canvas.width;
+                const zh = zone.h * canvas.height;
+
+                ctx.save();
+                ctx.globalAlpha = zone.opacity || 0.3;
+                ctx.fillStyle = zone.color || '#f59e0b';
+                
+                // Rounded Rectangle Zone
+                const rx = center.x - zw / 2;
+                const ry = center.y - zh / 2;
+                
+                ctx.beginPath();
+                ctx.roundRect(rx, ry, zw, zh, 16);
+                ctx.fill();
+
+                ctx.globalAlpha = Math.min(1, (zone.opacity || 0.3) + 0.3);
+                ctx.strokeStyle = zone.color || '#f59e0b';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([4, 4]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Label
+                if (zone.label) {
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = '900 11px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.shadowColor = 'rgba(0,0,0,0.8)';
+                    ctx.shadowBlur = 4;
+                    ctx.fillText(zone.label.toUpperCase(), center.x, center.y);
+                }
+
+                // Highlight if selected
+                if (state.selectedItem && state.selectedItem.type === 'zone' && state.selectedItem.id === zone.id) {
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(rx - 4, ry - 4, zw + 8, zh + 8);
+                }
+
+                ctx.restore();
+            });
+        }
+
+        // Draw Lines, Routes, Blitzes & Blocks
+        function drawTacticalLines() {
+            state.drawings.forEach(d => {
+                if (!d.points || d.points.length < 2) return;
+
+                ctx.save();
+                ctx.strokeStyle = d.color || '#ffffff';
+                ctx.lineWidth = 3;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+
+                const p0 = normToCanvas(d.points[0].x, d.points[0].y);
+                const pEnd = normToCanvas(d.points[d.points.length - 1].x, d.points[d.points.length - 1].y);
+
+                if (d.type === 'motion') {
+                    ctx.setLineDash([6, 6]);
+                } else if (d.type === 'coverageLine') {
+                    ctx.setLineDash([3, 4]);
+                    ctx.strokeStyle = d.color || '#06b6d4';
+                }
+
+                ctx.beginPath();
+                ctx.moveTo(p0.x, p0.y);
+
+                if (d.type === 'blitz') {
+                    // Zig-Zag Blitz Line
+                    for (let i = 1; i < d.points.length; i++) {
+                        const pt = normToCanvas(d.points[i].x, d.points[i].y);
+                        const prev = normToCanvas(d.points[i-1].x, d.points[i-1].y);
+                        const midX = (prev.x + pt.x) / 2 + (i % 2 === 0 ? 8 : -8);
+                        const midY = (prev.y + pt.y) / 2;
+                        ctx.lineTo(midX, midY);
+                        ctx.lineTo(pt.x, pt.y);
+                    }
+                } else {
+                    for (let i = 1; i < d.points.length; i++) {
+                        const pt = normToCanvas(d.points[i].x, d.points[i].y);
+                        ctx.lineTo(pt.x, pt.y);
+                    }
+                }
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Terminal Symbols (Arrow or T-bar)
+                const pPenultimate = d.points.length > 1 ? normToCanvas(d.points[d.points.length - 2].x, d.points[d.points.length - 2].y) : p0;
+                const angle = Math.atan2(pEnd.y - pPenultimate.y, pEnd.x - pPenultimate.x);
+
+                if (d.type === 'block') {
+                    // Draw T-Bar End
+                    const barLen = 10;
+                    ctx.beginPath();
+                    ctx.moveTo(pEnd.x + Math.cos(angle + Math.PI/2) * barLen, pEnd.y + Math.sin(angle + Math.PI/2) * barLen);
+                    ctx.lineTo(pEnd.x + Math.cos(angle - Math.PI/2) * barLen, pEnd.y + Math.sin(angle - Math.PI/2) * barLen);
+                    ctx.stroke();
+                } else {
+                    // Draw Arrowhead
+                    const headLen = 10;
+                    ctx.fillStyle = d.color || '#ffffff';
+                    ctx.beginPath();
+                    ctx.moveTo(pEnd.x, pEnd.y);
+                    ctx.lineTo(pEnd.x - headLen * Math.cos(angle - Math.PI / 6), pEnd.y - headLen * Math.sin(angle - Math.PI / 6));
+                    ctx.lineTo(pEnd.x - headLen * Math.cos(angle + Math.PI / 6), pEnd.y - headLen * Math.sin(angle + Math.PI / 6));
+                    ctx.closePath();
+                    ctx.fill();
+                }
+
+                ctx.restore();
+            });
+
+            // Currently Drawing Live Line Preview
+            if (state.isDrawingPath && state.currentPath && state.currentPath.points.length > 1) {
+                ctx.save();
+                ctx.strokeStyle = state.drawColor;
+                ctx.lineWidth = 3;
+                if (state.selectedTool === 'motion') ctx.setLineDash([6, 6]);
+                if (state.selectedTool === 'coverageLine') ctx.setLineDash([3, 4]);
+
+                ctx.beginPath();
+                const pts = state.currentPath.points;
+                const start = normToCanvas(pts[0].x, pts[0].y);
+                ctx.moveTo(start.x, start.y);
+                for (let i = 1; i < pts.length; i++) {
+                    const pt = normToCanvas(pts[i].x, pts[i].y);
+                    ctx.lineTo(pt.x, pt.y);
+                }
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        // Draw Player Tokens
+        function drawPlayers() {
+            state.players.forEach(p => {
+                // Filter view mode
+                if (state.viewMode === 'offense' && p.team !== 'offense') return;
+                if (state.viewMode === 'defense' && p.team !== 'defense') return;
+
+                const pos = normToCanvas(p.x, p.y);
+                const radius = 15;
+
+                ctx.save();
+
+                // Selection Glow
+                const isSelected = state.selectedItem && state.selectedItem.type === 'player' && state.selectedItem.id === p.id;
+                if (isSelected) {
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, radius + 5, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+                    ctx.fill();
+                }
+
+                if (p.symbol === 'O') {
+                    // Offense Token - Circle
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
+                    ctx.fillStyle = p.color || '#2563eb';
+                    ctx.fill();
+                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.stroke();
+
+                    // Text Label
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 11px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(p.label, pos.x, pos.y);
+
+                } else if (p.symbol === 'X') {
+                    // Defense Token - 'X' Box or Cross
+                    ctx.fillStyle = p.color || '#dc2626';
+                    ctx.beginPath();
+                    ctx.roundRect(pos.x - radius, pos.y - radius, radius * 2, radius * 2, 6);
+                    ctx.fill();
+                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.stroke();
+
+                    // Label inside or underneath
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 10px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(p.label, pos.x, pos.y);
+                }
+
+                ctx.restore();
+            });
+        }
+
+        // Interaction Handling
+        function getCanvasMousePos(e) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            const m = getCanvasMousePos(e);
+            const norm = canvasToNorm(m.x, m.y);
+
+            if (state.selectedTool === 'select') {
+                // Check player click first
+                let clickedPlayer = null;
+                for (let i = state.players.length - 1; i >= 0; i--) {
+                    const p = state.players[i];
+                    const pPos = normToCanvas(p.x, p.y);
+                    const dist = Math.hypot(pPos.x - m.x, pPos.y - m.y);
+                    if (dist <= 18) {
+                        clickedPlayer = p;
+                        break;
+                    }
+                }
+
+                if (clickedPlayer) {
+                    state.selectedItem = { type: 'player', id: clickedPlayer.id };
+                    state.isDragging = true;
+                    state.dragOffset = { x: norm.x - clickedPlayer.x, y: norm.y - clickedPlayer.y };
+                    updateInspector();
+                    render();
+                    return;
+                }
+
+                // Check zone click
+                let clickedZone = null;
+                for (let i = state.zones.length - 1; i >= 0; i--) {
+                    const z = state.zones[i];
+                    const zPos = normToCanvas(z.x, z.y);
+                    const zw = z.w * canvas.width;
+                    const zh = z.h * canvas.height;
+                    if (Math.abs(m.x - zPos.x) <= zw / 2 && Math.abs(m.y - zPos.y) <= zh / 2) {
+                        clickedZone = z;
+                        break;
+                    }
+                }
+
+                if (clickedZone) {
+                    state.selectedItem = { type: 'zone', id: clickedZone.id };
+                    state.isDragging = true;
+                    state.dragOffset = { x: norm.x - clickedZone.x, y: norm.y - clickedZone.y };
+                    updateInspector();
+                    render();
+                    return;
+                }
+
+                // Deselect if clicked empty field
+                state.selectedItem = null;
+                updateInspector();
+                render();
+
+            } else if (state.selectedTool === 'eraser') {
+                // Delete clicked player or zone
+                const pIndex = state.players.findIndex(p => Math.hypot(normToCanvas(p.x, p.y).x - m.x, normToCanvas(p.x, p.y).y - m.y) <= 18);
+                if (pIndex !== -1) {
+                    state.players.splice(pIndex, 1);
+                    saveStateToHistory();
+                    render();
+                    return;
+                }
+
+                const zIndex = state.zones.findIndex(z => {
+                    const zPos = normToCanvas(z.x, z.y);
+                    return Math.abs(m.x - zPos.x) <= (z.w * canvas.width)/2 && Math.abs(m.y - zPos.y) <= (z.h * canvas.height)/2;
+                });
+                if (zIndex !== -1) {
+                    state.zones.splice(zIndex, 1);
+                    saveStateToHistory();
+                    render();
+                    return;
+                }
+
+            } else if (['route', 'blitz', 'coverageLine', 'block', 'motion'].includes(state.selectedTool)) {
+                // Start Line Path Drawing
+                state.isDrawingPath = true;
+                state.currentPath = {
+                    id: 'draw_' + Date.now(),
+                    type: state.selectedTool,
+                    color: state.drawColor,
+                    points: [{ x: norm.x, y: norm.y }]
+                };
+
+            } else if (state.selectedTool.startsWith('zone')) {
+                // Drop Quick Defensive Zone Preset
+                let zoneConfig = { label: 'ZONE', color: state.drawColor, w: 0.22, h: 0.16 };
+                if (state.selectedTool === 'zoneFlat') {
+                    zoneConfig = { label: 'FLAT', color: '#f59e0b', w: 0.24, h: 0.14 };
+                } else if (state.selectedTool === 'zoneHook') {
+                    zoneConfig = { label: 'HOOK/CURL', color: '#3b82f6', w: 0.22, h: 0.16 };
+                } else if (state.selectedTool === 'zoneDeepThird') {
+                    zoneConfig = { label: 'DEEP 1/3', color: '#22c55e', w: 0.28, h: 0.24 };
+                } else if (state.selectedTool === 'zoneDeepHalf') {
+                    zoneConfig = { label: 'DEEP 1/2', color: '#a855f7', w: 0.42, h: 0.25 };
+                } else if (state.selectedTool === 'zoneCustomRect') {
+                    zoneConfig = { label: 'ZONA', color: state.drawColor, w: 0.2, h: 0.15 };
+                }
+
+                const newZone = {
+                    id: 'zone_' + Date.now(),
+                    x: norm.x,
+                    y: norm.y,
+                    w: zoneConfig.w,
+                    h: zoneConfig.h,
+                    color: zoneConfig.color,
+                    opacity: parseFloat(state.zoneOpacity),
+                    label: zoneConfig.label
+                };
+
+                state.zones.push(newZone);
+                state.selectedItem = { type: 'zone', id: newZone.id };
+                saveStateToHistory();
+                updateInspector();
+                render();
+            }
         });
-        modeBtns[key].className = "mode-btn bg-blue-600 text-white font-bold px-3 py-1 rounded-md transition flex items-center gap-1 shadow";
-      });
-    });
 
-    // BOTONES DE ESTILO DE LÍNEA
-    const styleBtns = {
-      arrow: document.getElementById("style-arrow"),
-      solid: document.getElementById("style-solid"),
-      dashed: document.getElementById("style-dashed")
-    };
+        canvas.addEventListener('mousemove', (e) => {
+            const m = getCanvasMousePos(e);
+            const norm = canvasToNorm(m.x, m.y);
 
-    Object.keys(styleBtns).forEach(key => {
-      styleBtns[key].addEventListener("click", () => {
-        lineStyle = key;
-        Object.values(styleBtns).forEach(btn => {
-          btn.className = "style-btn text-slate-300 hover:text-white px-2.5 py-1 rounded transition";
+            if (state.isDragging && state.selectedItem) {
+                if (state.selectedItem.type === 'player') {
+                    const p = state.players.find(item => item.id === state.selectedItem.id);
+                    if (p) {
+                        p.x = Math.max(0.02, Math.min(0.98, norm.x - state.dragOffset.x));
+                        p.y = Math.max(0.02, Math.min(0.98, norm.y - state.dragOffset.y));
+                        render();
+                    }
+                } else if (state.selectedItem.type === 'zone') {
+                    const z = state.zones.find(item => item.id === state.selectedItem.id);
+                    if (z) {
+                        z.x = Math.max(0.05, Math.min(0.95, norm.x - state.dragOffset.x));
+                        z.y = Math.max(0.05, Math.min(0.95, norm.y - state.dragOffset.y));
+                        render();
+                    }
+                }
+            } else if (state.isDrawingPath && state.currentPath) {
+                state.currentPath.points.push({ x: norm.x, y: norm.y });
+                render();
+            }
         });
-        styleBtns[key].className = "style-btn bg-slate-700 text-white font-bold px-2.5 py-1 rounded transition shadow";
-        // Si estábamos en modo mover, pasar automáticamente a modo dibujar al cambiar trazo
-        if (activeMode !== "draw") modeBtns.draw.click();
-      });
-    });
 
-    // PALETA DE COLORES
-    const colorSwatches = document.querySelectorAll(".color-swatch");
-    const customColorPicker = document.getElementById("custom-color-picker");
+        window.addEventListener('mouseup', () => {
+            if (state.isDragging) {
+                state.isDragging = false;
+                saveStateToHistory();
+            }
+            if (state.isDrawingPath && state.currentPath) {
+                if (state.currentPath.points.length > 1) {
+                    state.drawings.push(state.currentPath);
+                    saveStateToHistory();
+                }
+                state.isDrawingPath = false;
+                state.currentPath = null;
+                render();
+            }
+        });
 
-    colorSwatches.forEach(swatch => {
-      swatch.addEventListener("click", () => {
-        colorSwatches.forEach(s => s.classList.remove("active"));
-        swatch.classList.add("active");
-        strokeColor = swatch.dataset.color;
-        customColorPicker.value = strokeColor;
-        if (activeMode !== "draw") modeBtns.draw.click();
-      });
-    });
+        // Inspector Panel Sync
+        function updateInspector() {
+            const emptyState = document.getElementById('inspectorEmpty');
+            const content = document.getElementById('inspectorContent');
+            const playerGroup = document.getElementById('playerEditGroup');
+            const zoneGroup = document.getElementById('zoneEditGroup');
 
-    customColorPicker.addEventListener("input", (e) => {
-      strokeColor = e.target.value;
-      colorSwatches.forEach(s => s.classList.remove("active"));
-      if (activeMode !== "draw") modeBtns.draw.click();
-    });
+            if (!state.selectedItem) {
+                emptyState.classList.remove('hidden');
+                content.classList.add('hidden');
+                return;
+            }
 
-    // GROSOR DE LÍNEA
-    document.getElementById("line-width-select").addEventListener("change", (e) => {
-      strokeWidth = e.target.value;
-    });
+            emptyState.classList.add('hidden');
+            content.classList.remove('hidden');
 
-    // BOTONES DE ACCIÓN (LIMPIAR, RESETEAR, DESCARGAR)
-    document.getElementById("btn-clear-draw").addEventListener("click", () => {
-      drawings = [];
-      render();
-    });
+            if (state.selectedItem.type === 'player') {
+                const player = state.players.find(p => p.id === state.selectedItem.id);
+                if (!player) return;
 
-    document.getElementById("btn-reset-board").addEventListener("click", () => {
-      drawings = [];
-      loadFormations(currentOffenseKey, currentDefenseKey);
-      render();
-    });
+                playerGroup.classList.remove('hidden');
+                zoneGroup.classList.add('hidden');
 
-    document.getElementById("btn-download").addEventListener("click", () => {
-      const link = document.createElement("a");
-      link.download = `jugada-${currentOffenseKey.toLowerCase()}.png`;
-      link.href = canvas.toDataURL("image/png");
-      link.click();
-    });
+                document.getElementById('editPlayerLabel').value = player.label;
+                document.getElementById('editPlayerSymbol').value = player.symbol;
+                document.getElementById('editPlayerColor').value = player.color || '#2563eb';
 
-    // INICIAR AL CARGAR
-    window.addEventListener("load", initBoard);
-  </script>
+            } else if (state.selectedItem.type === 'zone') {
+                const zone = state.zones.find(z => z.id === state.selectedItem.id);
+                if (!zone) return;
+
+                playerGroup.classList.add('hidden');
+                zoneGroup.classList.remove('hidden');
+
+                document.getElementById('editZoneLabel').value = zone.label || '';
+                document.getElementById('editZoneColor').value = zone.color || '#f59e0b';
+                document.getElementById('editZoneOpacity').value = zone.opacity || 0.3;
+            }
+        }
+
+        // Bind Inspector Inputs
+        document.getElementById('editPlayerLabel').addEventListener('input', (e) => {
+            if (state.selectedItem && state.selectedItem.type === 'player') {
+                const p = state.players.find(item => item.id === state.selectedItem.id);
+                if (p) { p.label = e.target.value.toUpperCase(); render(); }
+            }
+        });
+
+        document.getElementById('editPlayerSymbol').addEventListener('change', (e) => {
+            if (state.selectedItem && state.selectedItem.type === 'player') {
+                const p = state.players.find(item => item.id === state.selectedItem.id);
+                if (p) { p.symbol = e.target.value; render(); }
+            }
+        });
+
+        document.getElementById('editPlayerColor').addEventListener('input', (e) => {
+            if (state.selectedItem && state.selectedItem.type === 'player') {
+                const p = state.players.find(item => item.id === state.selectedItem.id);
+                if (p) { p.color = e.target.value; render(); }
+            }
+        });
+
+        document.getElementById('btnDeletePlayer').addEventListener('click', () => {
+            if (state.selectedItem && state.selectedItem.type === 'player') {
+                state.players = state.players.filter(p => p.id !== state.selectedItem.id);
+                state.selectedItem = null;
+                saveStateToHistory();
+                updateInspector();
+                render();
+            }
+        });
+
+        document.getElementById('editZoneLabel').addEventListener('input', (e) => {
+            if (state.selectedItem && state.selectedItem.type === 'zone') {
+                const z = state.zones.find(item => item.id === state.selectedItem.id);
+                if (z) { z.label = e.target.value.toUpperCase(); render(); }
+            }
+        });
+
+        document.getElementById('editZoneColor').addEventListener('input', (e) => {
+            if (state.selectedItem && state.selectedItem.type === 'zone') {
+                const z = state.zones.find(item => item.id === state.selectedItem.id);
+                if (z) { z.color = e.target.value; render(); }
+            }
+        });
+
+        document.getElementById('editZoneOpacity').addEventListener('input', (e) => {
+            if (state.selectedItem && state.selectedItem.type === 'zone') {
+                const z = state.zones.find(item => item.id === state.selectedItem.id);
+                if (z) { z.opacity = parseFloat(e.target.value); render(); }
+            }
+        });
+
+        document.getElementById('btnDeleteZone').addEventListener('click', () => {
+            if (state.selectedItem && state.selectedItem.type === 'zone') {
+                state.zones = state.zones.filter(z => z.id !== state.selectedItem.id);
+                state.selectedItem = null;
+                saveStateToHistory();
+                updateInspector();
+                render();
+            }
+        });
+
+        // UI Tool Button Switcher
+        const toolButtons = document.querySelectorAll('.tool-btn');
+        toolButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                toolButtons.forEach(b => b.classList.remove('active', 'bg-slate-800', 'text-white'));
+                btn.classList.add('active', 'bg-slate-800', 'text-white');
+                state.selectedTool = btn.id.replace('tool', '');
+                state.selectedTool = state.selectedTool.charAt(0).toLowerCase() + state.selectedTool.slice(1);
+            });
+        });
+
+        // Color & Opacity Global Settings
+        document.getElementById('drawColor').addEventListener('input', (e) => {
+            state.drawColor = e.target.value;
+        });
+        document.getElementById('zoneOpacity').addEventListener('input', (e) => {
+            state.zoneOpacity = e.target.value;
+        });
+
+        // View Mode Handlers
+        document.getElementById('modeBoth').addEventListener('click', function() {
+            setMode('both', this);
+        });
+        document.getElementById('modeOffense').addEventListener('click', function() {
+            setMode('offense', this);
+        });
+        document.getElementById('modeDefense').addEventListener('click', function() {
+            setMode('defense', this);
+        });
+
+        function setMode(mode, btnEl) {
+            document.querySelectorAll('.mode-btn').forEach(b => {
+                b.classList.remove('active', 'bg-slate-800', 'text-emerald-400');
+                b.classList.add('text-slate-400');
+            });
+            btnEl.classList.add('active', 'bg-slate-800', 'text-emerald-400');
+            btnEl.classList.remove('text-slate-400');
+            state.viewMode = mode;
+            render();
+        }
+
+        // Formation Presets Loading
+        document.querySelectorAll('.preset-offense').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const presetKey = btn.dataset.preset;
+                if (OFFENSE_PRESETS[presetKey]) {
+                    state.players = state.players.filter(p => p.team !== 'offense');
+                    OFFENSE_PRESETS[presetKey].forEach((p, idx) => {
+                        state.players.push({ ...p, id: 'off_' + Date.now() + '_' + idx, team: 'offense' });
+                    });
+                    saveStateToHistory();
+                    render();
+                }
+            });
+        });
+
+        document.querySelectorAll('.preset-defense').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const presetKey = btn.dataset.preset;
+                if (DEFENSE_PRESETS[presetKey]) {
+                    state.players = state.players.filter(p => p.team !== 'defense');
+                    DEFENSE_PRESETS[presetKey].forEach((p, idx) => {
+                        state.players.push({ ...p, id: 'def_' + Date.now() + '_' + idx, team: 'defense' });
+                    });
+                    saveStateToHistory();
+                    render();
+                }
+            });
+        });
+
+        // Add Manual Single Players
+        document.getElementById('btnAddOffense').addEventListener('click', () => {
+            const newP = {
+                id: 'off_' + Date.now(),
+                label: 'WR',
+                symbol: 'O',
+                team: 'offense',
+                x: 0.5,
+                y: 0.55,
+                color: '#2563eb'
+            };
+            state.players.push(newP);
+            state.selectedItem = { type: 'player', id: newP.id };
+            saveStateToHistory();
+            updateInspector();
+            render();
+        });
+
+        document.getElementById('btnAddDefense').addEventListener('click', () => {
+            const newP = {
+                id: 'def_' + Date.now(),
+                label: 'LB',
+                symbol: 'X',
+                team: 'defense',
+                x: 0.5,
+                y: 0.42,
+                color: '#dc2626'
+            };
+            state.players.push(newP);
+            state.selectedItem = { type: 'player', id: newP.id };
+            saveStateToHistory();
+            updateInspector();
+            render();
+        });
+
+        // Clear Canvas Actions
+        document.getElementById('btnClearLines').addEventListener('click', () => {
+            state.drawings = [];
+            state.zones = [];
+            saveStateToHistory();
+            render();
+        });
+
+        document.getElementById('btnResetAll').addEventListener('click', () => {
+            if (confirm('¿Restablecer toda la pizarra táctica?')) {
+                loadDefaultSetup();
+            }
+        });
+
+        document.getElementById('btnUndo').addEventListener('click', undo);
+
+        // Export PNG Image
+        document.getElementById('btnExportImage').addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.download = (document.getElementById('playTitle').value || 'jugada_tactica') + '.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+
+        // Playback Route Animation Simulation
+        let isAnimating = false;
+        document.getElementById('btnAnimate').addEventListener('click', () => {
+            if (isAnimating) return;
+            isAnimating = true;
+
+            const initialPlayers = JSON.parse(JSON.stringify(state.players));
+            let progress = 0;
+
+            const animInterval = setInterval(() => {
+                progress += 0.02;
+
+                // Move players along drawn routes if available
+                state.drawings.forEach(d => {
+                    if (d.points && d.points.length > 1) {
+                        const startPt = d.points[0];
+                        const targetPt = d.points[Math.min(d.points.length - 1, Math.floor(progress * d.points.length))];
+                        
+                        // Find closest player to route start point
+                        const player = state.players.find(p => Math.hypot(p.x - startPt.x, p.y - startPt.y) < 0.08);
+                        if (player) {
+                            player.x = startPt.x + (targetPt.x - startPt.x) * Math.min(1, progress);
+                            player.y = startPt.y + (targetPt.y - startPt.y) * Math.min(1, progress);
+                        }
+                    }
+                });
+
+                render();
+
+                if (progress >= 1) {
+                    clearInterval(animInterval);
+                    setTimeout(() => {
+                        state.players = initialPlayers;
+                        isAnimating = false;
+                        render();
+                    }, 800);
+                }
+            }, 30);
+        });
+
+        // Initialize Application
+        resizeCanvas();
+        loadDefaultSetup();
+    </script>
 </body>
 </html>
