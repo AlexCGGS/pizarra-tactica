@@ -1612,31 +1612,26 @@
             }, 30);
         });
 
-       // ==========================================
+// ==========================================
 // SISTEMA DE PERFIL Y GUARDADO DE JUGADAS (FIREBASE FIRESTORE)
 // ==========================================
 
-// Desestructuración del servicio Firebase expuesto globalmente
-const { 
-    db, 
-    playsCollection, 
-    doc, 
-    setDoc, 
-    deleteDoc, 
-    onSnapshot, 
-    query, 
-    orderBy, 
-    serverTimestamp 
-} = window.FirebaseService;
+// Helper para obtener Firebase de forma segura una vez cargado el módulo
+function getFB() {
+    return window.FirebaseService || null;
+}
 
 // 1. Guardar la jugada actual en Firebase Firestore
-document.getElementById('btnSavePlay').addEventListener('click', async () => {
-    const titleInput = document.getElementById('playTitle').value.trim() || 'Jugada sin título';
-    
-    // ID único basado en el título para sobrescribir si se guarda con el mismo nombre
+document.getElementById('btnSavePlay')?.addEventListener('click', async () => {
+    const fb = getFB();
+    if (!fb) {
+        alert("Firebase aún se está conectando. Inténtalo de nuevo en un instante.");
+        return;
+    }
+
+    const titleInput = document.getElementById('playTitle')?.value.trim() || 'Jugada sin título';
     const playId = titleInput.toLowerCase().replace(/[^a-z0-9]/g, '_') || 'play_' + Date.now();
 
-    // Crear el objeto de la jugada aislando el estado actual (copia profunda)
     const playData = {
         id: playId,
         title: titleInput,
@@ -1644,39 +1639,48 @@ document.getElementById('btnSavePlay').addEventListener('click', async () => {
         drawings: JSON.parse(JSON.stringify(state.drawings)),
         zones: JSON.parse(JSON.stringify(state.zones)),
         date: new Date().toLocaleDateString(),
-        updatedAt: serverTimestamp()
+        updatedAt: fb.serverTimestamp()
     };
 
     try {
-        // Guarda o actualiza en la colección de Firestore
-        await setDoc(doc(db, 'tactical_plays', playId), playData);
+        await fb.setDoc(fb.doc(fb.db, 'tactical_plays', playId), playData);
 
         // Feedback visual en el botón
         const btn = document.getElementById('btnSavePlay');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Guardado';
-        btn.classList.replace('bg-emerald-600', 'bg-emerald-500');
-        if (window.lucide) lucide.createIcons();
-        
-        setTimeout(() => { 
-            btn.innerHTML = originalText; 
-            btn.classList.replace('bg-emerald-500', 'bg-emerald-600');
-            if (window.lucide) lucide.createIcons(); 
-        }, 1500);
+        if (btn) {
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Guardado';
+            btn.classList.replace('bg-emerald-600', 'bg-emerald-500');
+            if (window.lucide) lucide.createIcons();
+            
+            setTimeout(() => { 
+                btn.innerHTML = originalText; 
+                btn.classList.replace('bg-emerald-500', 'bg-emerald-600');
+                if (window.lucide) lucide.createIcons(); 
+            }, 1500);
+        }
 
     } catch (error) {
         console.error("Error al guardar en Firebase:", error);
-        alert("Ocurrió un error al guardar la jugada en la nube.");
+        alert("Error de Firebase: " + error.message);
     }
 });
 
 // 2. Escuchar en tiempo real la lista de jugadas desde Firestore
 function listenToSavedPlays() {
-    const listContainer = document.getElementById('savedPlaysList');
-    const q = query(playsCollection, orderBy('updatedAt', 'desc'));
+    const fb = getFB();
+    if (!fb) {
+        // Reintenta en 200 ms si el módulo de Firebase aún no ha terminado de cargar
+        setTimeout(listenToSavedPlays, 200);
+        return;
+    }
 
-    // onSnapshot actualiza la barra lateral automáticamente al crear o borrar jugadas
-    onSnapshot(q, (snapshot) => {
+    const listContainer = document.getElementById('savedPlaysList');
+    if (!listContainer) return;
+
+    const q = fb.query(fb.playsCollection, fb.orderBy('updatedAt', 'desc'));
+
+    fb.onSnapshot(q, (snapshot) => {
         if (snapshot.empty) {
             listContainer.innerHTML = '<p class="text-xs text-slate-500 italic">No hay jugadas guardadas en la nube.</p>';
             return;
@@ -1690,7 +1694,6 @@ function listenToSavedPlays() {
             const item = document.createElement('div');
             item.className = 'flex items-center justify-between bg-slate-950 p-2 rounded border border-slate-800 hover:border-slate-700 transition group';
 
-            // Contenedor clickeable para cargar
             const loadZone = document.createElement('div');
             loadZone.className = 'cursor-pointer flex-1 truncate pr-2';
             loadZone.onclick = () => loadPlay(play);
@@ -1706,13 +1709,12 @@ function listenToSavedPlays() {
             loadZone.appendChild(titleSpan);
             loadZone.appendChild(dateSpan);
 
-            // Botón de eliminar
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'text-slate-600 hover:text-red-400 p-1.5 transition rounded hover:bg-slate-900';
             deleteBtn.title = "Eliminar jugada";
             deleteBtn.innerHTML = '<i data-lucide="trash-2" class="w-3.5 h-3.5"></i>';
             deleteBtn.onclick = (e) => {
-                e.stopPropagation(); // Evita cargar la jugada al hacer clic en borrar
+                e.stopPropagation();
                 deletePlay(docSnap.id);
             };
 
@@ -1731,12 +1733,12 @@ function listenToSavedPlays() {
 function loadPlay(play) {
     if (!play) return;
 
-    // Inyectar estado en la aplicación
     state.players = JSON.parse(JSON.stringify(play.players || []));
     state.drawings = JSON.parse(JSON.stringify(play.drawings || []));
     state.zones = JSON.parse(JSON.stringify(play.zones || []));
     
-    document.getElementById('playTitle').value = play.title || '';
+    const titleInput = document.getElementById('playTitle');
+    if (titleInput) titleInput.value = play.title || '';
     state.selectedItem = null; 
     
     if (typeof saveStateToHistory === 'function') saveStateToHistory();
@@ -1746,12 +1748,15 @@ function loadPlay(play) {
 
 // 4. Eliminar una jugada de Firestore
 async function deletePlay(docId) {
+    const fb = getFB();
+    if (!fb) return;
+
     if (confirm('¿Estás seguro de que deseas eliminar esta jugada de la nube?')) {
         try {
-            await deleteDoc(doc(db, 'tactical_plays', docId));
+            await fb.deleteDoc(fb.doc(fb.db, 'tactical_plays', docId));
         } catch (error) {
             console.error("Error al eliminar la jugada:", error);
-            alert("No se pudo eliminar la jugada.");
+            alert("No se pudo eliminar: " + error.message);
         }
     }
 }
@@ -1759,8 +1764,8 @@ async function deletePlay(docId) {
 // ==========================================
 // ARRANQUE DE LA APLICACIÓN
 // ==========================================
-if (typeof loadDefaultSetup === 'function') loadDefaultSetup(); // Pizarra por defecto
-listenToSavedPlays(); // Escucha activa de jugadas en tiempo real
+if (typeof loadDefaultSetup === 'function') loadDefaultSetup();
+listenToSavedPlays();
     </script>
 </body>
 </html>
