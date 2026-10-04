@@ -30,6 +30,7 @@
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans h-screen flex flex-col overflow-hidden">
 <!-- Carga e Inicialización de Firebase Firestore (v10 Modular) -->
+<!-- Inicialización de Firebase Firestore con tu proyecto 'pizarras-tacticas' -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { 
@@ -44,21 +45,23 @@
     serverTimestamp 
   } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-  // Reemplaza con las credenciales de tu proyecto en Firebase Console
+  // Tu configuración de Firebase
   const firebaseConfig = {
-  apiKey: "AIzaSyA1rPkohRswD3Yc6Q_Se0GMhGpJtOVph2I",
-  authDomain: "pizarras-tacticas.firebaseapp.com",
-  projectId: "pizarras-tacticas",
-  storageBucket: "pizarras-tacticas.firebasestorage.app",
-  messagingSenderId: "333329552227",
-  appId: "1:333329552227:web:a0d121e6ce08232dd4b956",
-  measurementId: "G-MR8BTG3E0Y"
-};
+    apiKey: "AIzaSyA1rPkohRswD3Yc6Q_Se0GMhGpJtOVph2I",
+    authDomain: "pizarras-tacticas.firebaseapp.com",
+    projectId: "pizarras-tacticas",
+    storageBucket: "pizarras-tacticas.firebasestorage.app",
+    messagingSenderId: "333329552227",
+    appId: "1:333329552227:web:a0d121e6ce08232dd4b956",
+    measurementId: "G-MR8BTG3E0Y"
+  };
+
+  // Inicializar Firebase y Firestore
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const playsCollection = collection(db, "tactical_plays");
 
-  // Expone el servicio a la aplicación global
+  // Exponer las funciones a window para que las use script.js
   window.FirebaseService = {
     db,
     playsCollection,
