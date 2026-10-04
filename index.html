@@ -41,11 +41,10 @@
     deleteDoc, 
     onSnapshot, 
     query, 
-    orderBy, 
+    where, // <-- 1. Añadir 'where' aquí
     serverTimestamp 
   } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-  // Tu configuración de Firebase
   const firebaseConfig = {
     apiKey: "AIzaSyA1rPkohRswD3Yc6Q_Se0GMhGpJtOVph2I",
     authDomain: "pizarras-tacticas.firebaseapp.com",
@@ -56,12 +55,10 @@
     measurementId: "G-MR8BTG3E0Y"
   };
 
-  // Inicializar Firebase y Firestore
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const playsCollection = collection(db, "tactical_plays");
 
-  // Exponer las funciones a window para que las use script.js
   window.FirebaseService = {
     db,
     playsCollection,
@@ -70,12 +67,23 @@
     deleteDoc,
     onSnapshot,
     query,
-    orderBy,
+    where, // <-- 2. Añadir 'where' aquí
     serverTimestamp
   };
 </script>
     <!-- Top Navigation Header -->
     <header class="bg-slate-900 border-b border-slate-800 px-4 py-2.5 flex items-center justify-between shrink-0">
+        <!-- Formulario de guardado y filtro por equipo -->
+<div class="space-y-2 mb-4">
+    <div>
+        <label class="text-[10px] uppercase text-slate-400 font-bold block mb-1">Código de Equipo</label>
+        <input type="text" id="teamCodeInput" placeholder="Ej: PENGUINS" value="PENGUINS" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white uppercase focus:outline-none focus:border-indigo-500">
+    </div>
+    <div>
+        <label class="text-[10px] uppercase text-slate-400 font-bold block mb-1">Tu Nombre / Alias</label>
+        <input type="text" id="authorAliasInput" placeholder="Ej: Coach Ataque" value="Coach" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-indigo-500">
+    </div>
+</div>
         <div class="flex items-center gap-3">
             <div class="bg-emerald-600 p-2 rounded-lg text-white shadow-lg shadow-emerald-900/30">
                 <i data-lucide="shield"></i>
@@ -1613,15 +1621,17 @@
         });
 
 // ==========================================
-// SISTEMA DE PERFIL Y GUARDADO DE JUGADAS (FIREBASE FIRESTORE)
+// SISTEMA DE PLAYBOOK POR CÓDIGO DE EQUIPO (SIN LOGIN)
 // ==========================================
 
-// Helper para obtener Firebase de forma segura una vez cargado el módulo
 function getFB() {
     return window.FirebaseService || null;
 }
 
-// 1. Guardar la jugada actual en Firebase Firestore
+// Variable para controlar la suscripción activa de Firestore
+let unsubscribePlaysListener = null;
+
+// 1. Guardar la jugada vinculada al Código de Equipo
 document.getElementById('btnSavePlay')?.addEventListener('click', async () => {
     const fb = getFB();
     if (!fb) {
@@ -1630,11 +1640,18 @@ document.getElementById('btnSavePlay')?.addEventListener('click', async () => {
     }
 
     const titleInput = document.getElementById('playTitle')?.value.trim() || 'Jugada sin título';
-    const playId = titleInput.toLowerCase().replace(/[^a-z0-9]/g, '_') || 'play_' + Date.now();
+    const teamCode = (document.getElementById('teamCodeInput')?.value || 'GENERAL').trim().toUpperCase();
+    const authorAlias = (document.getElementById('authorAliasInput')?.value || 'Entrenador').trim();
+
+    // ID único compuesto por equipo y título
+    const playSlug = titleInput.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const playId = `${teamCode.toLowerCase()}_${playSlug}_${Date.now()}`;
 
     const playData = {
         id: playId,
         title: titleInput,
+        teamCode: teamCode,        // Ej: PENGUINS
+        authorAlias: authorAlias,  // Ej: Coach Offense
         players: JSON.parse(JSON.stringify(state.players)),
         drawings: JSON.parse(JSON.stringify(state.drawings)),
         zones: JSON.parse(JSON.stringify(state.zones)),
@@ -1661,16 +1678,15 @@ document.getElementById('btnSavePlay')?.addEventListener('click', async () => {
         }
 
     } catch (error) {
-        console.error("Error al guardar en Firebase:", error);
+        console.error("Error al guardar la jugada:", error);
         alert("Error de Firebase: " + error.message);
     }
 });
 
-// 2. Escuchar en tiempo real la lista de jugadas desde Firestore
+// 2. Escuchar las jugadas filtradas por el Código de Equipo activo
 function listenToSavedPlays() {
     const fb = getFB();
     if (!fb) {
-        // Reintenta en 200 ms si el módulo de Firebase aún no ha terminado de cargar
         setTimeout(listenToSavedPlays, 200);
         return;
     }
@@ -1678,21 +1694,36 @@ function listenToSavedPlays() {
     const listContainer = document.getElementById('savedPlaysList');
     if (!listContainer) return;
 
-    const q = fb.query(fb.playsCollection, fb.orderBy('updatedAt', 'desc'));
+    const teamCode = (document.getElementById('teamCodeInput')?.value || 'GENERAL').trim().toUpperCase();
 
-    fb.onSnapshot(q, (snapshot) => {
+    // Cancelar la escucha previa si cambia el código de equipo
+    if (unsubscribePlaysListener) {
+        unsubscribePlaysListener();
+    }
+
+    // Consulta filtrando exclusivamente por el Código de Equipo
+    const q = fb.query(fb.playsCollection, fb.where('teamCode', '==', teamCode));
+
+    unsubscribePlaysListener = fb.onSnapshot(q, (snapshot) => {
         if (snapshot.empty) {
-            listContainer.innerHTML = '<p class="text-xs text-slate-500 italic">No hay jugadas guardadas en la nube.</p>';
+            listContainer.innerHTML = `<p class="text-xs text-slate-500 italic p-2">No hay jugadas guardadas para el equipo "<span class="font-bold text-slate-400">${teamCode}</span>".</p>`;
             return;
         }
 
+        // Convertir a array y ordenar por fecha más reciente en memoria (evita requerir índices en Firebase)
+        const plays = [];
+        snapshot.forEach(docSnap => plays.push({ docId: docSnap.id, ...docSnap.data() }));
+        plays.sort((a, b) => {
+            const timeA = a.updatedAt?.seconds || 0;
+            const timeB = b.updatedAt?.seconds || 0;
+            return timeB - timeA;
+        });
+
         listContainer.innerHTML = '';
 
-        snapshot.forEach((docSnap) => {
-            const play = docSnap.data();
-
+        plays.forEach((play) => {
             const item = document.createElement('div');
-            item.className = 'flex items-center justify-between bg-slate-950 p-2 rounded border border-slate-800 hover:border-slate-700 transition group';
+            item.className = 'flex items-center justify-between bg-slate-950 p-2 rounded border border-slate-800 hover:border-slate-700 transition group mb-1.5';
 
             const loadZone = document.createElement('div');
             loadZone.className = 'cursor-pointer flex-1 truncate pr-2';
@@ -1702,12 +1733,12 @@ function listenToSavedPlays() {
             titleSpan.className = 'text-xs font-medium text-slate-300 group-hover:text-white transition block truncate';
             titleSpan.textContent = play.title;
             
-            const dateSpan = document.createElement('span');
-            dateSpan.className = 'text-[9px] text-slate-500 block';
-            dateSpan.textContent = play.date || '';
+            const metaSpan = document.createElement('span');
+            metaSpan.className = 'text-[9px] text-slate-500 block truncate';
+            metaSpan.textContent = `${play.authorAlias || 'Entrenador'} • ${play.date || ''}`;
 
             loadZone.appendChild(titleSpan);
-            loadZone.appendChild(dateSpan);
+            loadZone.appendChild(metaSpan);
 
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'text-slate-600 hover:text-red-400 p-1.5 transition rounded hover:bg-slate-900';
@@ -1715,7 +1746,7 @@ function listenToSavedPlays() {
             deleteBtn.innerHTML = '<i data-lucide="trash-2" class="w-3.5 h-3.5"></i>';
             deleteBtn.onclick = (e) => {
                 e.stopPropagation();
-                deletePlay(docSnap.id);
+                deletePlay(play.docId);
             };
 
             item.appendChild(loadZone);
@@ -1725,11 +1756,16 @@ function listenToSavedPlays() {
 
         if (window.lucide) lucide.createIcons();
     }, (error) => {
-        console.error("Error al sincronizar Firestore:", error);
+        console.error("Error al sincronizar el playbook:", error);
     });
 }
 
-// 3. Cargar una jugada en la pizarra desde el objeto recibido
+// Escuchar cambios en el input del Código de Equipo para recargar la lista automáticamente
+document.getElementById('teamCodeInput')?.addEventListener('input', () => {
+    listenToSavedPlays();
+});
+
+// 3. Cargar una jugada en la pizarra
 function loadPlay(play) {
     if (!play) return;
 
@@ -1746,12 +1782,12 @@ function loadPlay(play) {
     if (typeof render === 'function') render();
 }
 
-// 4. Eliminar una jugada de Firestore
+// 4. Eliminar una jugada
 async function deletePlay(docId) {
     const fb = getFB();
     if (!fb) return;
 
-    if (confirm('¿Estás seguro de que deseas eliminar esta jugada de la nube?')) {
+    if (confirm('¿Estás seguro de que deseas eliminar esta jugada?')) {
         try {
             await fb.deleteDoc(fb.doc(fb.db, 'tactical_plays', docId));
         } catch (error) {
