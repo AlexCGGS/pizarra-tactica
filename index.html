@@ -1556,20 +1556,155 @@
 
                 render();
 
-                if (progress >= 1) {
+               if (progress >= 1) {
                     clearInterval(animInterval);
+                    isAnimating = false;
+                    // Restaurar las posiciones 1.5 segundos después de terminar la simulación
                     setTimeout(() => {
                         state.players = initialPlayers;
-                        isAnimating = false;
                         render();
-                    }, 800);
+                    }, 1500);
                 }
             }, 30);
         });
 
-        // Initialize Application
-        resizeCanvas();
-        loadDefaultSetup();
+        // ==========================================
+        // SISTEMA DE PERFIL LOCAL Y GUARDADO DE JUGADAS
+        // ==========================================
+
+        // 1. Guardar la jugada actual en el perfil del usuario
+        document.getElementById('btnSavePlay').addEventListener('click', () => {
+            const titleInput = document.getElementById('playTitle').value || 'Jugada sin título';
+            
+            // Crear el objeto de la jugada aislando el estado actual (copia profunda)
+            const playData = {
+                id: 'play_' + Date.now(),
+                title: titleInput,
+                players: JSON.parse(JSON.stringify(state.players)),
+                drawings: JSON.parse(JSON.stringify(state.drawings)),
+                zones: JSON.parse(JSON.stringify(state.zones)),
+                date: new Date().toLocaleDateString()
+            };
+
+            // Recuperar el historial del usuario o crear uno nuevo
+            let savedPlays = JSON.parse(localStorage.getItem('tacticalBoardPlays')) || [];
+            
+            // Prevenir duplicados si se guarda múltiples veces con el mismo nombre y estado
+            // Opcional: Actualizar si ya existe una con el mismo título
+            const existingIndex = savedPlays.findIndex(p => p.title === playData.title);
+            if (existingIndex !== -1) {
+                savedPlays[existingIndex] = playData; // Sobrescribe la jugada existente
+            } else {
+                savedPlays.push(playData); // Añade como nueva
+            }
+
+            // Guardar en el navegador (localStorage)
+            localStorage.setItem('tacticalBoardPlays', JSON.stringify(savedPlays));
+
+            // Feedback visual en el botón
+            const btn = document.getElementById('btnSavePlay');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Guardado';
+            btn.classList.replace('bg-emerald-600', 'bg-emerald-500');
+            lucide.createIcons();
+            
+            setTimeout(() => { 
+                btn.innerHTML = originalText; 
+                btn.classList.replace('bg-emerald-500', 'bg-emerald-600');
+                lucide.createIcons(); 
+            }, 1500);
+
+            // Refrescar el panel lateral
+            renderSavedPlays();
+        });
+
+        // 2. Renderizar la lista de jugadas guardadas en la barra lateral
+        function renderSavedPlays() {
+            const listContainer = document.getElementById('savedPlaysList');
+            let savedPlays = JSON.parse(localStorage.getItem('tacticalBoardPlays')) || [];
+
+            if (savedPlays.length === 0) {
+                listContainer.innerHTML = '<p class="text-xs text-slate-500 italic">No hay jugadas guardadas en memoria.</p>';
+                return;
+            }
+
+            listContainer.innerHTML = '';
+            
+            // Ordenar de más reciente a más antigua
+            savedPlays.reverse().forEach(play => {
+                const item = document.createElement('div');
+                item.className = 'flex items-center justify-between bg-slate-950 p-2 rounded border border-slate-800 hover:border-slate-700 transition group';
+
+                // Contenedor clickeable para cargar
+                const loadZone = document.createElement('div');
+                loadZone.className = 'cursor-pointer flex-1 truncate pr-2';
+                loadZone.onclick = () => loadPlay(play.id);
+                
+                const titleSpan = document.createElement('span');
+                titleSpan.className = 'text-xs font-medium text-slate-300 group-hover:text-white transition block truncate';
+                titleSpan.textContent = play.title;
+                
+                const dateSpan = document.createElement('span');
+                dateSpan.className = 'text-[9px] text-slate-500 block';
+                dateSpan.textContent = play.date;
+
+                loadZone.appendChild(titleSpan);
+                loadZone.appendChild(dateSpan);
+
+                // Botón de eliminar
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'text-slate-600 hover:text-red-400 p-1.5 transition rounded hover:bg-slate-900';
+                deleteBtn.title = "Eliminar jugada";
+                deleteBtn.innerHTML = '<i data-lucide="trash-2" class="w-3.5 h-3.5"></i>';
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation(); // Evita que la jugada se cargue al intentar borrarla
+                    deletePlay(play.id);
+                };
+
+                item.appendChild(loadZone);
+                item.appendChild(deleteBtn);
+                listContainer.appendChild(item);
+            });
+
+            lucide.createIcons();
+        }
+
+        // 3. Cargar una jugada en la pizarra
+        function loadPlay(id) {
+            let savedPlays = JSON.parse(localStorage.getItem('tacticalBoardPlays')) || [];
+            const play = savedPlays.find(p => p.id === id);
+
+            if (play) {
+                // Inyectar estado (copia profunda para no mutar el localStorage por accidente)
+                state.players = JSON.parse(JSON.stringify(play.players));
+                state.drawings = JSON.parse(JSON.stringify(play.drawings));
+                state.zones = JSON.parse(JSON.stringify(play.zones));
+                
+                document.getElementById('playTitle').value = play.title;
+                state.selectedItem = null; 
+                
+                saveStateToHistory();
+                updateInspector();
+                render();
+            }
+        }
+
+        // 4. Eliminar una jugada
+        function deletePlay(id) {
+            if (confirm('¿Estás seguro de que deseas eliminar esta jugada táctica de forma permanente?')) {
+                let savedPlays = JSON.parse(localStorage.getItem('tacticalBoardPlays')) || [];
+                savedPlays = savedPlays.filter(p => p.id !== id);
+                localStorage.setItem('tacticalBoardPlays', JSON.stringify(savedPlays));
+                renderSavedPlays();
+            }
+        }
+
+        // ==========================================
+        // ARRANQUE DE LA APLICACIÓN
+        // ==========================================
+        loadDefaultSetup(); // Carga la pizarra por defecto
+        renderSavedPlays(); // Carga el perfil del usuario si lo tiene
+
     </script>
 </body>
 </html>
