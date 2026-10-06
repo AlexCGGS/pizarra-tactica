@@ -27,6 +27,8 @@
             border-radius: 3px;
         }
     </style>
+    <!-- Añadir en el <head> para poder generar PDFs -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans h-screen flex flex-col overflow-hidden">
 <!-- Carga e Inicialización de Firebase Firestore (v10 Modular) -->
@@ -110,6 +112,11 @@
             </button>
             <button id="btnSavePlay" class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-2 rounded-lg transition shadow">
                 <i data-lucide="save" class="w-4 h-4"></i> Guardar
+            </button>
+            <!-- Botón para exportar el Playbook -->
+            <button id="btnExportPDF" class="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded text-sm font-medium transition mt-4 mb-4">
+                <i data-lucide="book-open" class="w-4 h-4"></i>
+                Exportar Playbook a PDF
             </button>
         </div>
     </header>
@@ -1707,10 +1714,11 @@ function listenToSavedPlays() {
     unsubscribePlaysListener = fb.onSnapshot(q, (snapshot) => {
         if (snapshot.empty) {
             listContainer.innerHTML = `<p class="text-xs text-slate-500 italic p-2">No hay jugadas guardadas para el equipo "<span class="font-bold text-slate-400">${teamCode}</span>".</p>`;
+            window.currentTeamPlays = []; // Vaciamos el array de jugadas si no hay nada
             return;
         }
 
-        // Convertir a array y ordenar por fecha más reciente en memoria (evita requerir índices en Firebase)
+        // Convertir a array y ordenar por fecha más reciente en memoria
         const plays = [];
         snapshot.forEach(docSnap => plays.push({ docId: docSnap.id, ...docSnap.data() }));
         plays.sort((a, b) => {
@@ -1718,6 +1726,9 @@ function listenToSavedPlays() {
             const timeB = b.updatedAt?.seconds || 0;
             return timeB - timeA;
         });
+
+        // Guardar las jugadas activas del equipo para el exportador de PDF
+        window.currentTeamPlays = plays;
 
         listContainer.innerHTML = '';
 
@@ -1796,6 +1807,112 @@ async function deletePlay(docId) {
         }
     }
 }
+
+// ==========================================
+// EXPORTADOR DE PLAYBOOK A PDF
+// ==========================================
+document.getElementById('btnExportPDF')?.addEventListener('click', async () => {
+    if (!window.currentTeamPlays || window.currentTeamPlays.length === 0) {
+        alert("No hay jugadas en la lista actual para exportar.");
+        return;
+    }
+    
+    const teamCode = document.getElementById('teamCodeInput')?.value || 'Equipo';
+    
+    if (!confirm(`Se van a exportar ${window.currentTeamPlays.length} jugadas del equipo "${teamCode.toUpperCase()}" a un PDF. ¿Continuar?`)) {
+        return;
+    }
+
+    const btn = document.getElementById('btnExportPDF');
+    const originalBtnText = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Generando PDF...';
+        btn.classList.replace('bg-indigo-600', 'bg-indigo-800');
+        if (window.lucide) lucide.createIcons();
+    }
+
+    // Copia de seguridad del dibujo activo en pantalla
+    const backupState = {
+        players: JSON.parse(JSON.stringify(state.players)),
+        drawings: JSON.parse(JSON.stringify(state.drawings)),
+        zones: JSON.parse(JSON.stringify(state.zones)),
+        title: document.getElementById('playTitle')?.value || ''
+    };
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('landscape', 'mm', 'a4'); 
+        
+        const pdfWidth = 297;
+        const pdfHeight = 210;
+        
+        const canvas = document.querySelector('canvas');
+        if (!canvas) throw new Error("No se ha encontrado el elemento canvas de la pizarra.");
+
+        const playsToExport = [...window.currentTeamPlays].reverse();
+
+        for (let i = 0; i < playsToExport.length; i++) {
+            const play = playsToExport[i];
+            
+            loadPlay(play);
+            
+            await new Promise(resolve => setTimeout(resolve, 100)); 
+
+            const imgData = canvas.toDataURL('image/png', 1.0);
+
+            pdf.setFontSize(16);
+            pdf.text(play.title || 'Jugada sin título', 15, 15);
+            
+            pdf.setFontSize(10);
+            pdf.setTextColor(100);
+            pdf.text(`Categoría/Equipo: ${play.teamCode || ''}  |  Autor: ${play.authorAlias || ''}  |  Fecha: ${play.date || ''}`, 15, 22);
+            pdf.setTextColor(0);
+
+            const imgProps = pdf.getImageProperties(imgData);
+            const marginX = 15;
+            const marginTop = 30;
+            const marginBottom = 15;
+            
+            const availableWidth = pdfWidth - (marginX * 2);
+            const availableHeight = pdfHeight - marginTop - marginBottom;
+            
+            const ratio = Math.min(availableWidth / imgProps.width, availableHeight / imgProps.height);
+            const finalWidth = imgProps.width * ratio;
+            const finalHeight = imgProps.height * ratio;
+
+            const x = (pdfWidth - finalWidth) / 2;
+            const y = marginTop;
+
+            pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
+
+            if (i < playsToExport.length - 1) {
+                pdf.addPage();
+            }
+        }
+
+        pdf.save(`Playbook_${teamCode.toUpperCase()}.pdf`);
+
+    } catch (error) {
+        console.error("Error al generar el PDF:", error);
+        alert("Hubo un problema al generar el Playbook.");
+    } finally {
+        // Restaurar estado de la pizarra previo a la exportación
+        state.players = backupState.players;
+        state.drawings = backupState.drawings;
+        state.zones = backupState.zones;
+        
+        const titleInput = document.getElementById('playTitle');
+        if (titleInput) titleInput.value = backupState.title;
+        
+        if (typeof render === 'function') render();
+
+        if (btn) {
+            btn.innerHTML = originalBtnText;
+            btn.classList.replace('bg-indigo-800', 'bg-indigo-600');
+            if (window.lucide) lucide.createIcons();
+        }
+    }
+});
 
 // ==========================================
 // ARRANQUE DE LA APLICACIÓN
