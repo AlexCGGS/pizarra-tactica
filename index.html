@@ -28,11 +28,10 @@
         }
     </style>
     <!-- Añadir en el <head> para poder generar PDFs -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans h-screen flex flex-col overflow-hidden">
 <!-- Carga e Inicialización de Firebase Firestore (v10 Modular) -->
-<!-- Inicialización de Firebase Firestore con tu proyecto 'pizarras-tacticas' -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { 
@@ -43,7 +42,7 @@
     deleteDoc, 
     onSnapshot, 
     query, 
-    where, // <-- 1. Añadir 'where' aquí
+    where,
     serverTimestamp 
   } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
@@ -69,23 +68,25 @@
     deleteDoc,
     onSnapshot,
     query,
-    where, // <-- 2. Añadir 'where' aquí
+    where,
     serverTimestamp
   };
 </script>
+
     <!-- Top Navigation Header -->
     <header class="bg-slate-900 border-b border-slate-800 px-4 py-2.5 flex items-center justify-between shrink-0">
         <!-- Formulario de guardado y filtro por equipo -->
-<div class="space-y-2 mb-4">
-    <div>
-        <label class="text-[10px] uppercase text-slate-400 font-bold block mb-1">Código de Equipo</label>
-        <input type="text" id="teamCodeInput" placeholder="Ej: PENGUINS" value="PENGUINS" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white uppercase focus:outline-none focus:border-indigo-500">
-    </div>
-    <div>
-        <label class="text-[10px] uppercase text-slate-400 font-bold block mb-1">Tu Nombre / Alias</label>
-        <input type="text" id="authorAliasInput" placeholder="Ej: Coach Ataque" value="Coach" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-indigo-500">
-    </div>
-</div>
+        <div class="space-y-2 mb-4">
+            <div>
+                <label class="text-[10px] uppercase text-slate-400 font-bold block mb-1">Código de Equipo</label>
+                <input type="text" id="teamCodeInput" placeholder="Ej: PENGUINS" value="PENGUINS" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white uppercase focus:outline-none focus:border-indigo-500">
+            </div>
+            <div>
+                <label class="text-[10px] uppercase text-slate-400 font-bold block mb-1">Tu Nombre / Alias</label>
+                <input type="text" id="authorAliasInput" placeholder="Ej: Coach Ataque" value="Coach" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-indigo-500">
+            </div>
+        </div>
+
         <div class="flex items-center gap-3">
             <div class="bg-emerald-600 p-2 rounded-lg text-white shadow-lg shadow-emerald-900/30">
                 <i data-lucide="shield"></i>
@@ -415,7 +416,7 @@
                     </div>
                     <div class="flex items-center gap-1.5 text-slate-400">
                         <i data-lucide="info" class="w-3.5 h-3.5"></i>
-                        <span>Arrastra jugadores | Haz clic en zonas para editarlas</span>
+                        <span>Arrastra jugadores | Mantén SHIFT para líneas rectas</span>
                     </div>
                 </div>
             </div>
@@ -496,10 +497,10 @@
 
         // Application State
         const state = {
-            viewMode: 'both', // 'both', 'offense', 'defense'
-            fieldView: 'half_field', // 'half_field', 'full_field', 'red_zone'
+            viewMode: 'both',
+            fieldView: 'half_field',
             hashType: 'nfl',
-            selectedTool: 'select', // 'select', 'eraser', 'route', 'blitz', 'coverageLine', 'block', 'motion', 'zoneFlat', 'zoneHook', 'zoneDeepThird', 'zoneDeepHalf', 'zoneCustomRect'
+            selectedTool: 'select',
             drawColor: '#f59e0b',
             zoneOpacity: 0.3,
             
@@ -509,13 +510,14 @@
             zones: [],
             
             // Selection & Interaction
-            selectedItem: null, // { type: 'player'|'zone'|'drawing', id }
+            selectedItem: null,
             isDragging: false,
             dragOffset: { x: 0, y: 0 },
             
             // Drawing in progress
             currentPath: null,
             isDrawingPath: false,
+            drawStartPoint: null, // Punto de inicio para la restricción de Shift
             
             // History for Undo
             history: []
@@ -549,7 +551,7 @@
                 { label: 'X', symbol: 'O', x: 0.12, y: 0.55, color: '#3b82f6' },
                 { label: 'Z', symbol: 'O', x: 0.88, y: 0.55, color: '#3b82f6' }
             ],
-           i_formation: [
+            i_formation: [
                 { label: 'C', symbol: 'O', x: 0.5, y: 0.5, color: '#2563eb' },
                 { label: 'LG', symbol: 'O', x: 0.46, y: 0.5, color: '#2563eb' },
                 { label: 'RG', symbol: 'O', x: 0.54, y: 0.5, color: '#2563eb' },
@@ -562,7 +564,7 @@
                 { label: 'Y', symbol: 'O', x: 0.63, y: 0.5, color: '#3b82f6' },
                 { label: 'Z', symbol: 'O', x: 0.88, y: 0.57, color: '#3b82f6' }
             ],
-          trio: [
+            trio: [
                 { label: 'C', symbol: 'O', x: 0.5, y: 0.5, color: '#2563eb' },
                 { label: 'LG', symbol: 'O', x: 0.46, y: 0.5, color: '#2563eb' },
                 { label: 'RG', symbol: 'O', x: 0.54, y: 0.5, color: '#2563eb' },
@@ -730,7 +732,7 @@
                 { label: 'X', symbol: 'O', x: 0.12, y: 0.5, color: '#3b82f6' },
                 { label: 'Y', symbol: 'O', x: 0.63, y: 0.5, color: '#3b82f6' },
                 { label: 'Z', symbol: 'O', x: 0.65, y: 0.53, color: '#3b82f6' }
-            ],
+            ]
         };
 
         const DEFENSE_PRESETS = {
@@ -820,7 +822,6 @@
             const w = container.clientWidth - 32;
             const h = container.clientHeight - 32;
             
-            // Maintain 16:9 ratio for smooth tactical board view
             let canvasW = w;
             let canvasH = w * (9/16);
             if (canvasH > h) {
@@ -841,18 +842,15 @@
             state.drawings = [];
             state.zones = [];
             
-            // Add Offense
             OFFENSE_PRESETS.shotgun_spread.forEach((p, idx) => {
                 state.players.push({ ...p, id: 'off_' + idx, team: 'offense' });
             });
 
-            // Add Defense
-            OFFENSE_PRESETS_DEFENSE = DEFENSE_PRESETS.def_cover3_sky;
+            const OFFENSE_PRESETS_DEFENSE = DEFENSE_PRESETS.def_cover3_sky;
             OFFENSE_PRESETS_DEFENSE.forEach((p, idx) => {
                 state.players.push({ ...p, id: 'def_' + idx, team: 'defense' });
             });
 
-            // Add Default Defensive Coverage Zones for illustration
             state.zones.push(
                 { id: 'z1', label: 'DEEP 1/3', color: '#22c55e', opacity: 0.25, x: 0.18, y: 0.22, w: 0.28, h: 0.24 },
                 { id: 'z2', label: 'DEEP 1/3', color: '#22c55e', opacity: 0.25, x: 0.5, y: 0.18, w: 0.32, h: 0.22 },
@@ -877,7 +875,7 @@
 
         function undo() {
             if (state.history.length <= 1) return;
-            state.history.pop(); // Remove current
+            state.history.pop();
             const previous = JSON.parse(state.history[state.history.length - 1]);
             state.players = previous.players;
             state.drawings = previous.drawings;
@@ -896,20 +894,29 @@
             return { x: cx / canvas.width, y: cy / canvas.height };
         }
 
+        // Helper para restricción de ángulos ortogonales / diagonales con SHIFT
+        function getShiftConstrainedPoint(startX, startY, currentX, currentY) {
+            const dx = currentX - startX;
+            const dy = currentY - startY;
+            const angle = Math.atan2(dy, dx);
+            const distance = Math.hypot(dx, dy);
+
+            // Redondear al ángulo de 45° más cercano
+            const snapAngle = Math.round(angle / (Math.PI / 4)) * (Math.PI / 4);
+
+            return {
+                x: startX + distance * Math.cos(snapAngle),
+                y: startY + distance * Math.sin(snapAngle)
+            };
+        }
+
         // Rendering Engine
         function render() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // 1. Draw Football Field
             drawField();
-
-            // 2. Draw Defensive Coverage Zones (Underneath players & paths)
             drawZones();
-
-            // 3. Draw Tactical Routes, Blitzes, Motions
             drawTacticalLines();
-
-            // 4. Draw Players
             drawPlayers();
         }
 
@@ -918,7 +925,6 @@
             const w = canvas.width;
             const h = canvas.height;
 
-            // Turf Background Gradient
             const grassGrad = ctx.createLinearGradient(0, 0, 0, h);
             grassGrad.addColorStop(0, '#064e3b');
             grassGrad.addColorStop(0.5, '#047857');
@@ -926,17 +932,15 @@
             ctx.fillStyle = grassGrad;
             ctx.fillRect(0, 0, w, h);
 
-            // Subtle Yard Stripes (10 Yard Alternating Stripes)
             ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
             const stripeWidth = h / 6;
             for (let i = 0; i < 6; i += 2) {
                 ctx.fillRect(0, i * stripeWidth, w, stripeWidth);
             }
 
-            // Line of Scrimmage (LOS)
             const losY = h * 0.5;
             ctx.beginPath();
-            ctx.strokeStyle = '#38bdf8'; // Blue LOS line
+            ctx.strokeStyle = '#38bdf8';
             ctx.lineWidth = 3;
             ctx.setLineDash([8, 6]);
             ctx.moveTo(0, losY);
@@ -944,23 +948,18 @@
             ctx.stroke();
             ctx.setLineDash([]);
 
-            // First Down Line (10 Yds Ahead)
             const firstDownY = h * 0.28;
             ctx.beginPath();
-            ctx.strokeStyle = '#facc15'; // Yellow First Down Line
+            ctx.strokeStyle = '#facc15';
             ctx.lineWidth = 2.5;
             ctx.moveTo(0, firstDownY);
             ctx.lineTo(w, firstDownY);
             ctx.stroke();
 
-            // Field Yard Lines & Markings
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
             ctx.lineWidth = 1.5;
-
-            // Side Lines Boundary
             ctx.strokeRect(15, 15, w - 30, h - 30);
 
-            // Hash Marks
             const hashLeft = w * 0.38;
             const hashRight = w * 0.62;
             const stepY = h / 12;
@@ -978,7 +977,6 @@
                 ctx.lineTo(hashRight + 8, y);
                 ctx.stroke();
 
-                // Yard Numbers on sidelines
                 if (i % 2 === 0) {
                     const yardVal = 50 - Math.abs(5 - i) * 10;
                     ctx.fillText(yardVal.toString(), 30, y + 4);
@@ -998,7 +996,6 @@
                 ctx.globalAlpha = zone.opacity || 0.3;
                 ctx.fillStyle = zone.color || '#f59e0b';
                 
-                // Rounded Rectangle Zone
                 const rx = center.x - zw / 2;
                 const ry = center.y - zh / 2;
                 
@@ -1013,7 +1010,6 @@
                 ctx.stroke();
                 ctx.setLineDash([]);
 
-                // Label
                 if (zone.label) {
                     ctx.fillStyle = '#ffffff';
                     ctx.font = '900 11px sans-serif';
@@ -1024,7 +1020,6 @@
                     ctx.fillText(zone.label.toUpperCase(), center.x, center.y);
                 }
 
-                // Highlight if selected
                 if (state.selectedItem && state.selectedItem.type === 'zone' && state.selectedItem.id === zone.id) {
                     ctx.strokeStyle = '#ffffff';
                     ctx.lineWidth = 3;
@@ -1060,7 +1055,6 @@
                 ctx.moveTo(p0.x, p0.y);
 
                 if (d.type === 'blitz') {
-                    // Zig-Zag Blitz Line
                     for (let i = 1; i < d.points.length; i++) {
                         const pt = normToCanvas(d.points[i].x, d.points[i].y);
                         const prev = normToCanvas(d.points[i-1].x, d.points[i-1].y);
@@ -1078,19 +1072,16 @@
                 ctx.stroke();
                 ctx.setLineDash([]);
 
-                // Terminal Symbols (Arrow or T-bar)
                 const pPenultimate = d.points.length > 1 ? normToCanvas(d.points[d.points.length - 2].x, d.points[d.points.length - 2].y) : p0;
                 const angle = Math.atan2(pEnd.y - pPenultimate.y, pEnd.x - pPenultimate.x);
 
                 if (d.type === 'block') {
-                    // Draw T-Bar End
                     const barLen = 10;
                     ctx.beginPath();
                     ctx.moveTo(pEnd.x + Math.cos(angle + Math.PI/2) * barLen, pEnd.y + Math.sin(angle + Math.PI/2) * barLen);
                     ctx.lineTo(pEnd.x + Math.cos(angle - Math.PI/2) * barLen, pEnd.y - Math.sin(angle - Math.PI/2) * barLen);
                     ctx.stroke();
                 } else {
-                    // Draw Arrowhead
                     const headLen = 10;
                     ctx.fillStyle = d.color || '#ffffff';
                     ctx.beginPath();
@@ -1104,7 +1095,7 @@
                 ctx.restore();
             });
 
-            // Currently Drawing Live Line Preview
+            // Previsualización de dibujo en tiempo real
             if (state.isDrawingPath && state.currentPath && state.currentPath.points.length > 1) {
                 ctx.save();
                 ctx.strokeStyle = state.drawColor;
@@ -1128,7 +1119,6 @@
         // Draw Player Tokens
         function drawPlayers() {
             state.players.forEach(p => {
-                // Filter view mode
                 if (state.viewMode === 'offense' && p.team !== 'offense') return;
                 if (state.viewMode === 'defense' && p.team !== 'defense') return;
 
@@ -1137,7 +1127,6 @@
 
                 ctx.save();
 
-                // Selection Glow
                 const isSelected = state.selectedItem && state.selectedItem.type === 'player' && state.selectedItem.id === p.id;
                 if (isSelected) {
                     ctx.beginPath();
@@ -1147,7 +1136,6 @@
                 }
 
                 if (p.symbol === 'O') {
-                    // Offense Token - Circle
                     ctx.beginPath();
                     ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
                     ctx.fillStyle = p.color || '#2563eb';
@@ -1156,7 +1144,6 @@
                     ctx.strokeStyle = '#ffffff';
                     ctx.stroke();
 
-                    // Text Label
                     ctx.fillStyle = '#ffffff';
                     ctx.font = 'bold 11px sans-serif';
                     ctx.textAlign = 'center';
@@ -1164,7 +1151,6 @@
                     ctx.fillText(p.label, pos.x, pos.y);
 
                 } else if (p.symbol === 'X') {
-                    // Defense Token - 'X' Box or Cross
                     ctx.fillStyle = p.color || '#dc2626';
                     ctx.beginPath();
                     ctx.roundRect(pos.x - radius, pos.y - radius, radius * 2, radius * 2, 6);
@@ -1173,7 +1159,6 @@
                     ctx.strokeStyle = '#ffffff';
                     ctx.stroke();
 
-                    // Label inside or underneath
                     ctx.fillStyle = '#ffffff';
                     ctx.font = 'bold 10px sans-serif';
                     ctx.textAlign = 'center';
@@ -1199,7 +1184,6 @@
             const norm = canvasToNorm(m.x, m.y);
 
             if (state.selectedTool === 'select') {
-                // Check player click first
                 let clickedPlayer = null;
                 for (let i = state.players.length - 1; i >= 0; i--) {
                     const p = state.players[i];
@@ -1220,7 +1204,6 @@
                     return;
                 }
 
-                // Check zone click
                 let clickedZone = null;
                 for (let i = state.zones.length - 1; i >= 0; i--) {
                     const z = state.zones[i];
@@ -1242,13 +1225,11 @@
                     return;
                 }
 
-                // Deselect if clicked empty field
                 state.selectedItem = null;
                 updateInspector();
                 render();
 
             } else if (state.selectedTool === 'eraser') {
-                // Delete clicked player or zone
                 const pIndex = state.players.findIndex(p => Math.hypot(normToCanvas(p.x, p.y).x - m.x, normToCanvas(p.x, p.y).y - m.y) <= 18);
                 if (pIndex !== -1) {
                     state.players.splice(pIndex, 1);
@@ -1269,8 +1250,8 @@
                 }
 
             } else if (['route', 'blitz', 'coverageLine', 'block', 'motion'].includes(state.selectedTool)) {
-                // Start Line Path Drawing
                 state.isDrawingPath = true;
+                state.drawStartPoint = { x: m.x, y: m.y }; // Guardar punto inicial para restricción con Shift
                 state.currentPath = {
                     id: 'draw_' + Date.now(),
                     type: state.selectedTool,
@@ -1279,7 +1260,6 @@
                 };
 
             } else if (state.selectedTool.startsWith('zone')) {
-                // Drop Quick Defensive Zone Preset
                 let zoneConfig = { label: 'ZONE', color: state.drawColor, w: 0.22, h: 0.16 };
                 if (state.selectedTool === 'zoneFlat') {
                     zoneConfig = { label: 'FLAT', color: '#f59e0b', w: 0.24, h: 0.14 };
@@ -1314,7 +1294,7 @@
 
         canvas.addEventListener('mousemove', (e) => {
             const m = getCanvasMousePos(e);
-            const norm = canvasToNorm(m.x, m.y);
+            let norm = canvasToNorm(m.x, m.y);
 
             if (state.isDragging && state.selectedItem) {
                 if (state.selectedItem.type === 'player') {
@@ -1333,7 +1313,32 @@
                     }
                 }
             } else if (state.isDrawingPath && state.currentPath) {
-                state.currentPath.points.push({ x: norm.x, y: norm.y });
+                let targetX = m.x;
+                let targetY = m.y;
+
+                // Bloqueo de línea recta a 0°, 45° o 90° si se mantiene presionado Shift
+                if (e.shiftKey && state.drawStartPoint) {
+                    const constrained = getShiftConstrainedPoint(
+                        state.drawStartPoint.x, 
+                        state.drawStartPoint.y, 
+                        m.x, 
+                        m.y
+                    );
+                    targetX = constrained.x;
+                    targetY = constrained.y;
+                }
+
+                const constrainedNorm = canvasToNorm(targetX, targetY);
+
+                if (e.shiftKey) {
+                    state.currentPath.points = [
+                        state.currentPath.points[0], 
+                        { x: constrainedNorm.x, y: constrainedNorm.y }
+                    ];
+                } else {
+                    state.currentPath.points.push({ x: constrainedNorm.x, y: constrainedNorm.y });
+                }
+                
                 render();
             }
         });
@@ -1350,6 +1355,7 @@
                 }
                 state.isDrawingPath = false;
                 state.currentPath = null;
+                state.drawStartPoint = null;
                 render();
             }
         });
@@ -1598,13 +1604,11 @@
             const animInterval = setInterval(() => {
                 progress += 0.02;
 
-                // Move players along drawn routes if available
                 state.drawings.forEach(d => {
                     if (d.points && d.points.length > 1) {
                         const startPt = d.points[0];
                         const targetPt = d.points[Math.min(d.points.length - 1, Math.floor(progress * d.points.length))];
                         
-                        // Find closest player to route start point
                         const player = state.players.find(p => Math.hypot(p.x - startPt.x, p.y - startPt.y) < 0.08);
                         if (player) {
                             player.x = startPt.x + (targetPt.x - startPt.x) * Math.min(1, progress);
@@ -1615,10 +1619,9 @@
 
                 render();
 
-               if (progress >= 1) {
+                if (progress >= 1) {
                     clearInterval(animInterval);
                     isAnimating = false;
-                    // Restaurar las posiciones 1.5 segundos después de terminar la simulación
                     setTimeout(() => {
                         state.players = initialPlayers;
                         render();
@@ -1627,298 +1630,285 @@
             }, 30);
         });
 
-// ==========================================
-// SISTEMA DE PLAYBOOK POR CÓDIGO DE EQUIPO (SIN LOGIN)
-// ==========================================
+        // ==========================================
+        // SISTEMA DE PLAYBOOK POR CÓDIGO DE EQUIPO (SIN LOGIN)
+        // ==========================================
 
-function getFB() {
-    return window.FirebaseService || null;
-}
-
-// Variable para controlar la suscripción activa de Firestore
-let unsubscribePlaysListener = null;
-
-// 1. Guardar la jugada vinculada al Código de Equipo
-document.getElementById('btnSavePlay')?.addEventListener('click', async () => {
-    const fb = getFB();
-    if (!fb) {
-        alert("Firebase aún se está conectando. Inténtalo de nuevo en un instante.");
-        return;
-    }
-
-    const titleInput = document.getElementById('playTitle')?.value.trim() || 'Jugada sin título';
-    const teamCode = (document.getElementById('teamCodeInput')?.value || 'GENERAL').trim().toUpperCase();
-    const authorAlias = (document.getElementById('authorAliasInput')?.value || 'Entrenador').trim();
-
-    // ID único compuesto por equipo y título
-    const playSlug = titleInput.toLowerCase().replace(/[^a-z0-9]/g, '_');
-    const playId = `${teamCode.toLowerCase()}_${playSlug}_${Date.now()}`;
-
-    const playData = {
-        id: playId,
-        title: titleInput,
-        teamCode: teamCode,        // Ej: PENGUINS
-        authorAlias: authorAlias,  // Ej: Coach Offense
-        players: JSON.parse(JSON.stringify(state.players)),
-        drawings: JSON.parse(JSON.stringify(state.drawings)),
-        zones: JSON.parse(JSON.stringify(state.zones)),
-        date: new Date().toLocaleDateString(),
-        updatedAt: fb.serverTimestamp()
-    };
-
-    try {
-        await fb.setDoc(fb.doc(fb.db, 'tactical_plays', playId), playData);
-
-        // Feedback visual en el botón
-        const btn = document.getElementById('btnSavePlay');
-        if (btn) {
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Guardado';
-            btn.classList.replace('bg-emerald-600', 'bg-emerald-500');
-            if (window.lucide) lucide.createIcons();
-            
-            setTimeout(() => { 
-                btn.innerHTML = originalText; 
-                btn.classList.replace('bg-emerald-500', 'bg-emerald-600');
-                if (window.lucide) lucide.createIcons(); 
-            }, 1500);
+        function getFB() {
+            return window.FirebaseService || null;
         }
 
-    } catch (error) {
-        console.error("Error al guardar la jugada:", error);
-        alert("Error de Firebase: " + error.message);
-    }
-});
+        let unsubscribePlaysListener = null;
 
-// 2. Escuchar las jugadas filtradas por el Código de Equipo activo
-function listenToSavedPlays() {
-    const fb = getFB();
-    if (!fb) {
-        setTimeout(listenToSavedPlays, 200);
-        return;
-    }
+        document.getElementById('btnSavePlay')?.addEventListener('click', async () => {
+            const fb = getFB();
+            if (!fb) {
+                alert("Firebase aún se está conectando. Inténtalo de nuevo en un instante.");
+                return;
+            }
 
-    const listContainer = document.getElementById('savedPlaysList');
-    if (!listContainer) return;
+            const titleInput = document.getElementById('playTitle')?.value.trim() || 'Jugada sin título';
+            const teamCode = (document.getElementById('teamCodeInput')?.value || 'GENERAL').trim().toUpperCase();
+            const authorAlias = (document.getElementById('authorAliasInput')?.value || 'Entrenador').trim();
 
-    const teamCode = (document.getElementById('teamCodeInput')?.value || 'GENERAL').trim().toUpperCase();
+            const playSlug = titleInput.toLowerCase().replace(/[^a-z0-9]/g, '_');
+            const playId = `${teamCode.toLowerCase()}_${playSlug}_${Date.now()}`;
 
-    // Cancelar la escucha previa si cambia el código de equipo
-    if (unsubscribePlaysListener) {
-        unsubscribePlaysListener();
-    }
-
-    // Consulta filtrando exclusivamente por el Código de Equipo
-    const q = fb.query(fb.playsCollection, fb.where('teamCode', '==', teamCode));
-
-    unsubscribePlaysListener = fb.onSnapshot(q, (snapshot) => {
-        if (snapshot.empty) {
-            listContainer.innerHTML = `<p class="text-xs text-slate-500 italic p-2">No hay jugadas guardadas para el equipo "<span class="font-bold text-slate-400">${teamCode}</span>".</p>`;
-            window.currentTeamPlays = []; // Vaciamos el array de jugadas si no hay nada
-            return;
-        }
-
-        // Convertir a array y ordenar por fecha más reciente en memoria
-        const plays = [];
-        snapshot.forEach(docSnap => plays.push({ docId: docSnap.id, ...docSnap.data() }));
-        plays.sort((a, b) => {
-            const timeA = a.updatedAt?.seconds || 0;
-            const timeB = b.updatedAt?.seconds || 0;
-            return timeB - timeA;
-        });
-
-        // Guardar las jugadas activas del equipo para el exportador de PDF
-        window.currentTeamPlays = plays;
-
-        listContainer.innerHTML = '';
-
-        plays.forEach((play) => {
-            const item = document.createElement('div');
-            item.className = 'flex items-center justify-between bg-slate-950 p-2 rounded border border-slate-800 hover:border-slate-700 transition group mb-1.5';
-
-            const loadZone = document.createElement('div');
-            loadZone.className = 'cursor-pointer flex-1 truncate pr-2';
-            loadZone.onclick = () => loadPlay(play);
-            
-            const titleSpan = document.createElement('span');
-            titleSpan.className = 'text-xs font-medium text-slate-300 group-hover:text-white transition block truncate';
-            titleSpan.textContent = play.title;
-            
-            const metaSpan = document.createElement('span');
-            metaSpan.className = 'text-[9px] text-slate-500 block truncate';
-            metaSpan.textContent = `${play.authorAlias || 'Entrenador'} • ${play.date || ''}`;
-
-            loadZone.appendChild(titleSpan);
-            loadZone.appendChild(metaSpan);
-
-            const deleteBtn = document.createElement('button');
-            deleteBtn.className = 'text-slate-600 hover:text-red-400 p-1.5 transition rounded hover:bg-slate-900';
-            deleteBtn.title = "Eliminar jugada";
-            deleteBtn.innerHTML = '<i data-lucide="trash-2" class="w-3.5 h-3.5"></i>';
-            deleteBtn.onclick = (e) => {
-                e.stopPropagation();
-                deletePlay(play.docId);
+            const playData = {
+                id: playId,
+                title: titleInput,
+                teamCode: teamCode,
+                authorAlias: authorAlias,
+                players: JSON.parse(JSON.stringify(state.players)),
+                drawings: JSON.parse(JSON.stringify(state.drawings)),
+                zones: JSON.parse(JSON.stringify(state.zones)),
+                date: new Date().toLocaleDateString(),
+                updatedAt: fb.serverTimestamp()
             };
 
-            item.appendChild(loadZone);
-            item.appendChild(deleteBtn);
-            listContainer.appendChild(item);
+            try {
+                await fb.setDoc(fb.doc(fb.db, 'tactical_plays', playId), playData);
+
+                const btn = document.getElementById('btnSavePlay');
+                if (btn) {
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Guardado';
+                    btn.classList.replace('bg-emerald-600', 'bg-emerald-500');
+                    if (window.lucide) lucide.createIcons();
+                    
+                    setTimeout(() => { 
+                        btn.innerHTML = originalText; 
+                        btn.classList.replace('bg-emerald-500', 'bg-emerald-600');
+                        if (window.lucide) lucide.createIcons(); 
+                    }, 1500);
+                }
+
+            } catch (error) {
+                console.error("Error al guardar la jugada:", error);
+                alert("Error de Firebase: " + error.message);
+            }
         });
 
-        if (window.lucide) lucide.createIcons();
-    }, (error) => {
-        console.error("Error al sincronizar el playbook:", error);
-    });
-}
+        function listenToSavedPlays() {
+            const fb = getFB();
+            if (!fb) {
+                setTimeout(listenToSavedPlays, 200);
+                return;
+            }
 
-// Escuchar cambios en el input del Código de Equipo para recargar la lista automáticamente
-document.getElementById('teamCodeInput')?.addEventListener('input', () => {
-    listenToSavedPlays();
-});
+            const listContainer = document.getElementById('savedPlaysList');
+            if (!listContainer) return;
 
-// 3. Cargar una jugada en la pizarra
-function loadPlay(play) {
-    if (!play) return;
+            const teamCode = (document.getElementById('teamCodeInput')?.value || 'GENERAL').trim().toUpperCase();
 
-    state.players = JSON.parse(JSON.stringify(play.players || []));
-    state.drawings = JSON.parse(JSON.stringify(play.drawings || []));
-    state.zones = JSON.parse(JSON.stringify(play.zones || []));
-    
-    const titleInput = document.getElementById('playTitle');
-    if (titleInput) titleInput.value = play.title || '';
-    state.selectedItem = null; 
-    
-    if (typeof saveStateToHistory === 'function') saveStateToHistory();
-    if (typeof updateInspector === 'function') updateInspector();
-    if (typeof render === 'function') render();
-}
+            if (unsubscribePlaysListener) {
+                unsubscribePlaysListener();
+            }
 
-// 4. Eliminar una jugada
-async function deletePlay(docId) {
-    const fb = getFB();
-    if (!fb) return;
+            const q = fb.query(fb.playsCollection, fb.where('teamCode', '==', teamCode));
 
-    if (confirm('¿Estás seguro de que deseas eliminar esta jugada?')) {
-        try {
-            await fb.deleteDoc(fb.doc(fb.db, 'tactical_plays', docId));
-        } catch (error) {
-            console.error("Error al eliminar la jugada:", error);
-            alert("No se pudo eliminar: " + error.message);
+            unsubscribePlaysListener = fb.onSnapshot(q, (snapshot) => {
+                if (snapshot.empty) {
+                    listContainer.innerHTML = `<p class="text-xs text-slate-500 italic p-2">No hay jugadas guardadas para el equipo "<span class="font-bold text-slate-400">${teamCode}</span>".</p>`;
+                    window.currentTeamPlays = [];
+                    return;
+                }
+
+                const plays = [];
+                snapshot.forEach(docSnap => plays.push({ docId: docSnap.id, ...docSnap.data() }));
+                plays.sort((a, b) => {
+                    const timeA = a.updatedAt?.seconds || 0;
+                    const timeB = b.updatedAt?.seconds || 0;
+                    return timeB - timeA;
+                });
+
+                window.currentTeamPlays = plays;
+
+                listContainer.innerHTML = '';
+
+                plays.forEach((play) => {
+                    const item = document.createElement('div');
+                    item.className = 'flex items-center justify-between bg-slate-950 p-2 rounded border border-slate-800 hover:border-slate-700 transition group mb-1.5';
+
+                    const loadZone = document.createElement('div');
+                    loadZone.className = 'cursor-pointer flex-1 truncate pr-2';
+                    loadZone.onclick = () => loadPlay(play);
+                    
+                    const titleSpan = document.createElement('span');
+                    titleSpan.className = 'text-xs font-medium text-slate-300 group-hover:text-white transition block truncate';
+                    titleSpan.textContent = play.title;
+                    
+                    const metaSpan = document.createElement('span');
+                    metaSpan.className = 'text-[9px] text-slate-500 block truncate';
+                    metaSpan.textContent = `${play.authorAlias || 'Entrenador'} • ${play.date || ''}`;
+
+                    loadZone.appendChild(titleSpan);
+                    loadZone.appendChild(metaSpan);
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'text-slate-600 hover:text-red-400 p-1.5 transition rounded hover:bg-slate-900';
+                    deleteBtn.title = "Eliminar jugada";
+                    deleteBtn.innerHTML = '<i data-lucide="trash-2" class="w-3.5 h-3.5"></i>';
+                    deleteBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        deletePlay(play.docId);
+                    };
+
+                    item.appendChild(loadZone);
+                    item.appendChild(deleteBtn);
+                    listContainer.appendChild(item);
+                });
+
+                if (window.lucide) lucide.createIcons();
+            }, (error) => {
+                console.error("Error al sincronizar el playbook:", error);
+            });
         }
-    }
-}
 
-// ==========================================
-// EXPORTADOR DE PLAYBOOK A PDF
-// ==========================================
-document.getElementById('btnExportPDF')?.addEventListener('click', async () => {
-    if (!window.currentTeamPlays || window.currentTeamPlays.length === 0) {
-        alert("No hay jugadas en la lista actual para exportar.");
-        return;
-    }
-    
-    const teamCode = document.getElementById('teamCodeInput')?.value || 'Equipo';
-    
-    if (!confirm(`Se van a exportar ${window.currentTeamPlays.length} jugadas del equipo "${teamCode.toUpperCase()}" a un PDF. ¿Continuar?`)) {
-        return;
-    }
+        document.getElementById('teamCodeInput')?.addEventListener('input', () => {
+            listenToSavedPlays();
+        });
 
-    const btn = document.getElementById('btnExportPDF');
-    const originalBtnText = btn ? btn.innerHTML : '';
-    if (btn) {
-        btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Generando PDF...';
-        btn.classList.replace('bg-indigo-600', 'bg-indigo-800');
-        if (window.lucide) lucide.createIcons();
-    }
+        function loadPlay(play) {
+            if (!play) return;
 
-    // Copia de seguridad del dibujo activo en pantalla
-    const backupState = {
-        players: JSON.parse(JSON.stringify(state.players)),
-        drawings: JSON.parse(JSON.stringify(state.drawings)),
-        zones: JSON.parse(JSON.stringify(state.zones)),
-        title: document.getElementById('playTitle')?.value || ''
-    };
-
-    try {
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF('landscape', 'mm', 'a4'); 
-        
-        const pdfWidth = 297;
-        const pdfHeight = 210;
-        
-        const canvas = document.querySelector('canvas');
-        if (!canvas) throw new Error("No se ha encontrado el elemento canvas de la pizarra.");
-
-        const playsToExport = [...window.currentTeamPlays].reverse();
-
-        for (let i = 0; i < playsToExport.length; i++) {
-            const play = playsToExport[i];
+            state.players = JSON.parse(JSON.stringify(play.players || []));
+            state.drawings = JSON.parse(JSON.stringify(play.drawings || []));
+            state.zones = JSON.parse(JSON.stringify(play.zones || []));
             
-            loadPlay(play);
+            const titleInput = document.getElementById('playTitle');
+            if (titleInput) titleInput.value = play.title || '';
+            state.selectedItem = null; 
             
-            await new Promise(resolve => setTimeout(resolve, 100)); 
+            if (typeof saveStateToHistory === 'function') saveStateToHistory();
+            if (typeof updateInspector === 'function') updateInspector();
+            if (typeof render === 'function') render();
+        }
 
-            const imgData = canvas.toDataURL('image/png', 1.0);
+        async function deletePlay(docId) {
+            const fb = getFB();
+            if (!fb) return;
 
-            pdf.setFontSize(16);
-            pdf.text(play.title || 'Jugada sin título', 15, 15);
-            
-            pdf.setFontSize(10);
-            pdf.setTextColor(100);
-            pdf.text(`Categoría/Equipo: ${play.teamCode || ''}  |  Autor: ${play.authorAlias || ''}  |  Fecha: ${play.date || ''}`, 15, 22);
-            pdf.setTextColor(0);
-
-            const imgProps = pdf.getImageProperties(imgData);
-            const marginX = 15;
-            const marginTop = 30;
-            const marginBottom = 15;
-            
-            const availableWidth = pdfWidth - (marginX * 2);
-            const availableHeight = pdfHeight - marginTop - marginBottom;
-            
-            const ratio = Math.min(availableWidth / imgProps.width, availableHeight / imgProps.height);
-            const finalWidth = imgProps.width * ratio;
-            const finalHeight = imgProps.height * ratio;
-
-            const x = (pdfWidth - finalWidth) / 2;
-            const y = marginTop;
-
-            pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
-
-            if (i < playsToExport.length - 1) {
-                pdf.addPage();
+            if (confirm('¿Estás seguro de que deseas eliminar esta jugada?')) {
+                try {
+                    await fb.deleteDoc(fb.doc(fb.db, 'tactical_plays', docId));
+                } catch (error) {
+                    console.error("Error al eliminar la jugada:", error);
+                    alert("No se pudo eliminar: " + error.message);
+                }
             }
         }
 
-        pdf.save(`Playbook_${teamCode.toUpperCase()}.pdf`);
+        // ==========================================
+        // EXPORTADOR DE PLAYBOOK A PDF
+        // ==========================================
+        document.getElementById('btnExportPDF')?.addEventListener('click', async () => {
+            if (!window.currentTeamPlays || window.currentTeamPlays.length === 0) {
+                alert("No hay jugadas en la lista actual para exportar.");
+                return;
+            }
+            
+            const teamCode = document.getElementById('teamCodeInput')?.value || 'Equipo';
+            
+            if (!confirm(`Se van a exportar ${window.currentTeamPlays.length} jugadas del equipo "${teamCode.toUpperCase()}" a un PDF. ¿Continuar?`)) {
+                return;
+            }
 
-    } catch (error) {
-        console.error("Error al generar el PDF:", error);
-        alert("Hubo un problema al generar el Playbook.");
-    } finally {
-        // Restaurar estado de la pizarra previo a la exportación
-        state.players = backupState.players;
-        state.drawings = backupState.drawings;
-        state.zones = backupState.zones;
-        
-        const titleInput = document.getElementById('playTitle');
-        if (titleInput) titleInput.value = backupState.title;
-        
-        if (typeof render === 'function') render();
+            const btn = document.getElementById('btnExportPDF');
+            const originalBtnText = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Generando PDF...';
+                btn.classList.replace('bg-indigo-600', 'bg-indigo-800');
+                if (window.lucide) lucide.createIcons();
+            }
 
-        if (btn) {
-            btn.innerHTML = originalBtnText;
-            btn.classList.replace('bg-indigo-800', 'bg-indigo-600');
-            if (window.lucide) lucide.createIcons();
-        }
-    }
-});
+            const backupState = {
+                players: JSON.parse(JSON.stringify(state.players)),
+                drawings: JSON.parse(JSON.stringify(state.drawings)),
+                zones: JSON.parse(JSON.stringify(state.zones)),
+                title: document.getElementById('playTitle')?.value || ''
+            };
 
-// ==========================================
-// ARRANQUE DE LA APLICACIÓN
-// ==========================================
-if (typeof loadDefaultSetup === 'function') loadDefaultSetup();
-listenToSavedPlays();
+            try {
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('landscape', 'mm', 'a4'); 
+                
+                const pdfWidth = 297;
+                const pdfHeight = 210;
+                
+                const canvas = document.querySelector('canvas');
+                if (!canvas) throw new Error("No se ha encontrado el elemento canvas de la pizarra.");
+
+                const playsToExport = [...window.currentTeamPlays].reverse();
+
+                for (let i = 0; i < playsToExport.length; i++) {
+                    const play = playsToExport[i];
+                    
+                    loadPlay(play);
+                    
+                    await new Promise(resolve => setTimeout(resolve, 100)); 
+
+                    const imgData = canvas.toDataURL('image/png', 1.0);
+
+                    pdf.setFontSize(16);
+                    pdf.text(play.title || 'Jugada sin título', 15, 15);
+                    
+                    pdf.setFontSize(10);
+                    pdf.setTextColor(100);
+                    pdf.text(`Categoría/Equipo: ${play.teamCode || ''}  |  Autor: ${play.authorAlias || ''}  |  Fecha: ${play.date || ''}`, 15, 22);
+                    pdf.setTextColor(0);
+
+                    const imgProps = pdf.getImageProperties(imgData);
+                    const marginX = 15;
+                    const marginTop = 30;
+                    const marginBottom = 15;
+                    
+                    const availableWidth = pdfWidth - (marginX * 2);
+                    const availableHeight = pdfHeight - marginTop - marginBottom;
+                    
+                    const ratio = Math.min(availableWidth / imgProps.width, availableHeight / imgProps.height);
+                    const finalWidth = imgProps.width * ratio;
+                    const finalHeight = imgProps.height * ratio;
+
+                    const x = (pdfWidth - finalWidth) / 2;
+                    const y = marginTop;
+
+                    pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
+
+                    if (i < playsToExport.length - 1) {
+                        pdf.addPage();
+                    }
+                }
+
+                pdf.save(`Playbook_${teamCode.toUpperCase()}.pdf`);
+
+            } catch (error) {
+                console.error("Error al generar el PDF:", error);
+                alert("Hubo un problema al generar el Playbook.");
+            } finally {
+                state.players = backupState.players;
+                state.drawings = backupState.drawings;
+                state.zones = backupState.zones;
+                
+                const titleInput = document.getElementById('playTitle');
+                if (titleInput) titleInput.value = backupState.title;
+                
+                if (typeof render === 'function') render();
+
+                if (btn) {
+                    btn.innerHTML = originalBtnText;
+                    btn.classList.replace('bg-indigo-800', 'bg-indigo-600');
+                    if (window.lucide) lucide.createIcons();
+                }
+            }
+        });
+
+        // ==========================================
+        // ARRANQUE DE LA APLICACIÓN
+        // ==========================================
+        resizeCanvas();
+        if (typeof loadDefaultSetup === 'function') loadDefaultSetup();
+        listenToSavedPlays();
     </script>
 </body>
 </html>
